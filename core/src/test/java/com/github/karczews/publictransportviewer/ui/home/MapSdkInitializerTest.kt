@@ -4,12 +4,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.github.karczews.publictransportviewer.map.MapSdk
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -85,5 +88,38 @@ class MapSdkInitializerTest {
         assertFalse(initializer.isReady("a"))
         initializer.ensureInitialized(sdk).await()
         assertTrue(initializer.isReady("a"))
+    }
+
+    @Test
+    fun ensureInitialized_retriesAfterSynchronousFailureOnImmediateDispatcher() = runTest {
+        // An unconfined scope runs the init inline, before ensureInitialized has stored its Deferred.
+        var calls = 0
+        val initializer = MapSdkInitializer(CoroutineScope(UnconfinedTestDispatcher(testScheduler))) {
+            calls++
+            if (calls == 1) throw IllegalStateException("boom")
+        }
+
+        assertTrue(initializer.ensureInitialized(sdk).await().isFailure)
+        val retried = initializer.ensureInitialized(sdk).await()
+
+        assertTrue(retried.isSuccess)
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun ensureInitialized_reportsFailureWithSdkAndThrowable() = runTest {
+        val failure = IllegalStateException("boom")
+        var reported: Pair<MapSdk, Throwable>? = null
+        val initializer = MapSdkInitializer(
+            scope = backgroundScope,
+            initialize = { throw failure },
+            onFailure = { failedSdk, error -> reported = failedSdk to error },
+        )
+
+        initializer.ensureInitialized(sdk).await()
+
+        assertNotNull(reported)
+        assertSame(sdk, reported!!.first)
+        assertSame(failure, reported!!.second)
     }
 }
