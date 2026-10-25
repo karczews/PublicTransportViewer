@@ -10,18 +10,18 @@ Guidance for AI coding agents working in this repository.
 ./gradlew test                   # Run unit tests
 ./gradlew lint                   # Android lint (no detekt/ktlint/spotless configured)
 ./gradlew connectedAndroidTest   # Run instrumented tests on a connected device/emulator
-./gradlew test --tests "*.HomeViewModelTest"  # Run a single unit test class
+./gradlew :core:testDebugUnitTest --tests "*.HomeViewModelTest"  # Run a single unit test class
 # Single instrumented test:
-./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.github.karczews.publictransportviewer.ui.StopsScreenTest
+./gradlew :core:connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.github.karczews.publictransportviewer.ui.StopsScreenTest
 ```
 
-The TomTom API key must be set in `gradle.properties` as `tomtomApiKey=YOUR_KEY`. It is injected into `BuildConfig.TOMTOM_API_KEY` at build time.
+The TomTom API key must be set in `gradle.properties` as `tomtomApiKey=YOUR_KEY`. It is injected into `:map-tomtom`'s `BuildConfig.TOMTOM_API_KEY` at build time.
 
 ## Architecture
 
 See `docs/ARCHITECTURE.md` for data-flow diagrams, the Room schema, and component relationships.
 
-Single-module Android app (`app/`) using MVVM with Jetpack Compose. Dependency injection uses **Koin with the Koin Compiler Plugin** (`io.insert-koin.compiler.plugin`) — the annotation-based, compile-time-verified config (not KSP). The graph lives in `di/AppModule.kt` (a `@Module @ComponentScan` class of `@Single` provider functions); view models are `@KoinViewModel`, the WorkManager worker is `@KoinWorker`, and `PublicTransportApp` starts Koin via `startKoin<PublicTransportKoinConfiguration>` (a `@KoinApplication` aggregator). `compileSafety`/`strictSafety` validate the whole graph at build time. Composables obtain view models with `koinViewModel()`. Instrumented tests swap the graph through `TestPublicTransportApp` + `KoinTestRunner` (a plain DSL `testModule` of fakes).
+Multi-module Android app using MVVM with Jetpack Compose. `:app` holds only `PublicTransportApp`, `MainActivity` and the list of map SDKs it ships (`AvailableMapSdks.kt`); `:core` holds everything SDK-free (data, DI, view models, Stops/Alerts, nav scaffold); each map SDK is a `:map-<sdk>` module; `:core-testing` holds instrumented-test fakes. Dependency injection uses **Koin with the Koin Compiler Plugin** (`io.insert-koin.compiler.plugin`) — the annotation-based, compile-time-verified config (not KSP). The graph lives in `:core`'s `di/CoreModule.kt` (a `@Module @ComponentScan` class of `@Single` provider functions); view models are `@KoinViewModel`, the WorkManager worker is `@KoinWorker`, and `PublicTransportApp` starts Koin via `startKoin<PublicTransportKoinConfiguration>` (a `@KoinApplication` aggregator). `compileSafety`/`strictSafety` validate the whole graph at build time. Composables obtain view models with `koinViewModel()`. Instrumented tests swap the graph through `TestPublicTransportApp` + `KoinTestRunner` (a plain DSL `testModule` of fakes).
 
 ### Data Pipeline
 
@@ -33,9 +33,11 @@ Two separate data pipelines feed the app from the Lodz Open Data portal (`otwart
 
 Feed URLs contain a hardcoded year/month path in `GtfsEndpoints` (currently `2025/06`). When the city rotates feeds, this must be updated.
 
-### Map Rendering
+### Map SDKs
 
-The map uses the **TomTom Maps SDK** Compose API (`map-display-compose-standard`; version pinned as `tomtomSdk` in `gradle/libs.versions.toml`, currently 2.3.0). The SDK requires async initialization in `MainActivity` before any map composables render — the UI shows a loading spinner until `TomTomSdk.initialize()` completes.
+Each map SDK implements `MapSdk` (`:core`, `map/MapSdk.kt`) and owns the **whole Home tab** — map, markers, location, permission flow, controls — so SDK-specific experiments stay inside that module. `MapSdkHost` awaits `MapSdk.initialize()` (showing a spinner in the Home tab) before rendering `MapSdk.HomeScreen`. `HomeMapDefaults` and `vehicleTitle`/`vehicleLabel`/`vehicleIconRes` in `:core` are optional shared helpers.
+
+**TomTom** (`:map-tomtom`) uses the TomTom Maps SDK Compose API (`map-display-compose-standard`, version `tomtomSdk` in the catalog). `TomTomMapSdk.initialize()` runs `TomTomSdk.initialize()`.
 
 Key composables: `TomTomMap` (map surface), `Marker` (vehicles/stops), `Polyline` (route shapes), `CurrentLocationMarker` (blue dot). The location provider lifecycle (`enable()`/`disable()`) must be managed manually in a `DisposableEffect`.
 
@@ -46,8 +48,9 @@ Realtime data is enriched with static GTFS data from Room. Repositories fetch ra
 ## Conventions
 
 - Base package: `com.github.karczews.publictransportviewer`
-- TomTom SDK flavor: `complete` (set via `missingDimensionStrategy` in build.gradle.kts)
-- Room schemas exported to `app/schemas/`
+- TomTom SDK flavor: `complete` (set via `missingDimensionStrategy` in both `:app` and `:map-tomtom`)
+- Room schemas exported to `core/schemas/`
+- R classes are non-transitive: SDK modules reference `:core` resources via `import com.github.karczews.publictransportviewer.core.R as CoreR`
 - NDK ABI filters: `arm64-v8a` and `x86_64` only
-- Dependency versions live in the version catalog `gradle/libs.versions.toml` — resolve and bump them there, not in `app/build.gradle.kts`
+- Dependency versions live in the version catalog `gradle/libs.versions.toml` — resolve and bump them there, not in module build files
 - Commits follow Conventional Commits (`type(scope): subject`); branches follow `type/short-task-description` (e.g. `chore/xxx`, `feat/xxx`) — see `CONTRIBUTING.md`

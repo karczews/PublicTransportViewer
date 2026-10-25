@@ -1,12 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.room)
     alias(libs.plugins.koin.compiler)
 }
-
-val tomtomApiKey: String = findProperty("tomtomApiKey") as? String ?: ""
 
 android {
     namespace = "com.github.karczews.publictransportviewer"
@@ -42,18 +38,13 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
-    buildTypes.configureEach {
-        buildConfigField("String", "TOMTOM_API_KEY", "\"$tomtomApiKey\"")
+    lint {
+        checkDependencies = true
     }
-}
-
-room {
-    schemaDirectory("$projectDir/schemas")
 }
 
 koinCompiler {
@@ -65,6 +56,8 @@ koinCompiler {
 }
 
 dependencies {
+    implementation(project(":core"))
+    implementation(project(":map-tomtom"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -75,33 +68,16 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
     implementation(libs.work.runtime.ktx)
-    implementation(libs.okhttp)
-    implementation(libs.gtfs.rt.bindings)
-    implementation(libs.tomtom.sdk.init) {
-        // TomTom pulls protobuf-javalite which duplicates classes in protobuf-java
-        // (brought by org.mobilitydata:gtfs-realtime-bindings). protobuf-java is the
-        // superset and required by the GTFS bindings' GeneratedMessageV3 code, so drop lite.
-        exclude(group = "com.google.protobuf", module = "protobuf-javalite")
-    }
-    implementation(libs.tomtom.sdk.map.display.compose) {
-        exclude(group = "com.google.protobuf", module = "protobuf-javalite")
-    }
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.androidx.workmanager)
     implementation(libs.koin.annotations)
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.gtfs.rt.bindings)
+    androidTestImplementation(project(":core-testing"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

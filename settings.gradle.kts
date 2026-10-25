@@ -25,3 +25,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "PublicTransportViewer"
 include(":app")
+include(":core")
+include(":core-testing")
+include(":map-tomtom")
