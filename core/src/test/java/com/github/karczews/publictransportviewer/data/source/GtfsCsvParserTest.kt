@@ -134,8 +134,7 @@ class GtfsCsvParserTest {
             """
                 .trimIndent()
 
-        val results =
-            mutableListOf<com.github.karczews.publictransportviewer.data.db.entity.StopTimeEntity>()
+        val results = mutableListOf<com.github.karczews.publictransportviewer.data.db.entity.StopTimeEntity>()
         GtfsCsvParser.parseStopTimesStreaming(reader(csv)) { batch ->
             results.addAll(batch)
         }

@@ -14,8 +14,7 @@ interface RouteDao {
 
     @Query("SELECT * FROM gtfs_routes") suspend fun getAllRoutes(): List<RouteEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(routes: List<RouteEntity>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAll(routes: List<RouteEntity>)
 
     @Query("DELETE FROM gtfs_routes") suspend fun deleteAll()
 }

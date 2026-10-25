@@ -14,9 +14,7 @@ class GtfsRtTripUpdateDataSource(private val api: GtfsRtApi) : TripUpdateDataSou
 
     override suspend fun getTripUpdates(): List<TripUpdate> {
         val feedMessage = api.fetchTripUpdates().getOrThrow()
-        return feedMessage.entityList
-            .filter { it.hasTripUpdate() }
-            .map { entity -> mapTripUpdate(entity.tripUpdate) }
+        return feedMessage.entityList.filter { it.hasTripUpdate() }.map { entity -> mapTripUpdate(entity.tripUpdate) }
     }
 
     private fun mapTripUpdate(update: GtfsRealtime.TripUpdate): TripUpdate {
@@ -37,10 +35,8 @@ class GtfsRtTripUpdateDataSource(private val api: GtfsRtApi) : TripUpdateDataSou
         StopTimeUpdate(
             stopSequence = if (stu.hasStopSequence()) stu.stopSequence else null,
             stopId = if (stu.hasStopId()) stu.stopId else null,
-            arrivalDelaySeconds =
-                if (stu.hasArrival() && stu.arrival.hasDelay()) stu.arrival.delay else null,
-            departureDelaySeconds =
-                if (stu.hasDeparture() && stu.departure.hasDelay()) stu.departure.delay else null,
+            arrivalDelaySeconds = if (stu.hasArrival() && stu.arrival.hasDelay()) stu.arrival.delay else null,
+            departureDelaySeconds = if (stu.hasDeparture() && stu.departure.hasDelay()) stu.departure.delay else null,
             scheduleRelationship = mapScheduleRelationship(stu.scheduleRelationship),
         )
 
@@ -48,13 +44,9 @@ class GtfsRtTripUpdateDataSource(private val api: GtfsRtApi) : TripUpdateDataSou
         sr: GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship,
     ): ScheduleRelationship =
         when (sr) {
-            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED ->
-                ScheduleRelationship.SCHEDULED
-            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED ->
-                ScheduleRelationship.SKIPPED
-            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA ->
-                ScheduleRelationship.NO_DATA
-            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.UNSCHEDULED ->
-                ScheduleRelationship.UNSCHEDULED
+            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED -> ScheduleRelationship.SCHEDULED
+            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED -> ScheduleRelationship.SKIPPED
+            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA -> ScheduleRelationship.NO_DATA
+            GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.UNSCHEDULED -> ScheduleRelationship.UNSCHEDULED
         }
 }

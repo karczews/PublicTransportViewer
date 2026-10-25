@@ -75,9 +75,9 @@ class HomeViewModel(
 }
 
 /**
- * The route overlay to render: only when a route is loaded and its vehicle is still selected and
- * present in the latest feed. Mirrors the info card's presence gate so a feed update that drops the
- * vehicle hides the route instead of leaving it stale on the map.
+ * The route overlay to render: only when a route is loaded and its vehicle is still selected and present in the latest
+ * feed. Mirrors the info card's presence gate so a feed update that drops the vehicle hides the route instead of
+ * leaving it stale on the map.
  */
 fun visibleRouteDisplay(
     routeDisplay: RouteDisplayData?,

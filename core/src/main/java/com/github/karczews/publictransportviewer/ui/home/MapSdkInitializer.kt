@@ -19,10 +19,9 @@ sealed interface MapSdkInitState {
 private const val TAG = "MapSdkInitializer"
 
 /**
- * Runs each [MapSdk.initialize] at most once at a time, in [scope] rather than in the caller's
- * coroutine: leaving the Home tab or switching SDKs mid-init cancels the wait, not the init. A
- * failed init is reported to [onFailure] (logged by default) and forgotten, so the next
- * [ensureInitialized] retries it.
+ * Runs each [MapSdk.initialize] at most once at a time, in [scope] rather than in the caller's coroutine: leaving the
+ * Home tab or switching SDKs mid-init cancels the wait, not the init. A failed init is reported to [onFailure] (logged
+ * by default) and forgotten, so the next [ensureInitialized] retries it.
  *
  * Not thread-safe; call it from the main thread (callers are composables).
  */

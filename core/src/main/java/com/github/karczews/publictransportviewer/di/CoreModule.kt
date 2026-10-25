@@ -34,14 +34,12 @@ import org.koin.core.annotation.Single
 /**
  * Koin module wiring the whole graph.
  *
- * Infrastructure, data sources and repositories are declared as [Single] provider functions (the
- * equivalent of Dagger `@Provides`) because they need custom construction or interface binding. The
- * [ComponentScan] picks up class-level definitions in the base package — the `@KoinViewModel` view
- * models and the `@KoinWorker` worker.
+ * Infrastructure, data sources and repositories are declared as [Single] provider functions (the equivalent of Dagger
+ * `@Provides`) because they need custom construction or interface binding. The [ComponentScan] picks up class-level
+ * definitions in the base package — the `@KoinViewModel` view models and the `@KoinWorker` worker.
  *
- * The Koin compiler plugin validates this graph at compile time (`compileSafety`);
- * `android.content.Context` is part of the framework whitelist and is supplied at runtime by
- * `androidContext()`.
+ * The Koin compiler plugin validates this graph at compile time (`compileSafety`); `android.content.Context` is part of
+ * the framework whitelist and is supplied at runtime by `androidContext()`.
  */
 @Module
 @ComponentScan("com.github.karczews.publictransportviewer")
@@ -74,8 +72,7 @@ class CoreModule {
 
     @Single fun vehicleDataSource(api: GtfsRtApi): VehicleDataSource = GtfsRtVehicleDataSource(api)
 
-    @Single
-    fun tripUpdateDataSource(api: GtfsRtApi): TripUpdateDataSource = GtfsRtTripUpdateDataSource(api)
+    @Single fun tripUpdateDataSource(api: GtfsRtApi): TripUpdateDataSource = GtfsRtTripUpdateDataSource(api)
 
     @Single fun alertDataSource(api: GtfsRtApi): AlertDataSource = GtfsRtAlertDataSource(api)
 
@@ -97,8 +94,7 @@ class CoreModule {
         shapePointDao: ShapePointDao,
         stopTimeDao: StopTimeDao,
         stopDao: StopDao,
-    ): RouteDisplayRepository =
-        DefaultRouteDisplayRepository(tripDao, routeDao, shapePointDao, stopTimeDao, stopDao)
+    ): RouteDisplayRepository = DefaultRouteDisplayRepository(tripDao, routeDao, shapePointDao, stopTimeDao, stopDao)
 
     @Single
     fun alertRepository(
@@ -113,8 +109,7 @@ class CoreModule {
         tripDao: TripDao,
         routeDao: RouteDao,
         tripUpdateDataSource: TripUpdateDataSource,
-    ): StopRepository =
-        DefaultStopRepository(stopDao, stopTimeDao, tripDao, routeDao, tripUpdateDataSource)
+    ): StopRepository = DefaultStopRepository(stopDao, stopTimeDao, tripDao, routeDao, tripUpdateDataSource)
 
     companion object {
         private const val TIMEOUT_SECONDS = 30L

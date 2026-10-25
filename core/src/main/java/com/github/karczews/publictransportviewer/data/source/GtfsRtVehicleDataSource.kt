@@ -14,9 +14,7 @@ class GtfsRtVehicleDataSource(private val api: GtfsRtApi) : VehicleDataSource {
 
     override suspend fun getVehiclePositions(): List<VehiclePosition> {
         val feedMessage = api.fetchVehiclePositions().getOrThrow()
-        return feedMessage.entityList
-            .filter { it.hasVehicle() }
-            .map { entity -> mapToVehiclePosition(entity.vehicle) }
+        return feedMessage.entityList.filter { it.hasVehicle() }.map { entity -> mapToVehiclePosition(entity.vehicle) }
     }
 
     private fun mapToVehiclePosition(
@@ -56,8 +54,7 @@ class GtfsRtVehicleDataSource(private val api: GtfsRtApi) : VehicleDataSource {
         status: GtfsRealtime.VehiclePosition.VehicleStopStatus,
     ): VehicleStatus =
         when (status) {
-            GtfsRealtime.VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO ->
-                VehicleStatus.IN_TRANSIT_TO
+            GtfsRealtime.VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO -> VehicleStatus.IN_TRANSIT_TO
             GtfsRealtime.VehiclePosition.VehicleStopStatus.STOPPED_AT -> VehicleStatus.STOPPED_AT
             GtfsRealtime.VehiclePosition.VehicleStopStatus.INCOMING_AT -> VehicleStatus.INCOMING_AT
         }

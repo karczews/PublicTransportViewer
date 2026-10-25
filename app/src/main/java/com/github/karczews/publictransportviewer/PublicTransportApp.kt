@@ -21,9 +21,9 @@ import org.koin.core.annotation.KoinApplication
 import org.koin.plugin.module.dsl.startKoin
 
 /**
- * Aggregator type for the Koin compiler plugin: declares which annotated modules make up the
- * application graph. `startKoin<PublicTransportKoinConfiguration>()` loads [CoreModule] and
- * triggers the compile-time full-graph safety check.
+ * Aggregator type for the Koin compiler plugin: declares which annotated modules make up the application graph.
+ * `startKoin<PublicTransportKoinConfiguration>()` loads [CoreModule] and triggers the compile-time full-graph safety
+ * check.
  */
 @KoinApplication(modules = [CoreModule::class]) internal object PublicTransportKoinConfiguration
 
@@ -47,8 +47,7 @@ class PublicTransportApp : Application() {
     }
 
     private fun scheduleGtfsRefresh() {
-        val periodicRequest =
-            PeriodicWorkRequestBuilder<GtfsRefreshWorker>(7, TimeUnit.DAYS).build()
+        val periodicRequest = PeriodicWorkRequestBuilder<GtfsRefreshWorker>(7, TimeUnit.DAYS).build()
         WorkManager.getInstance(this)
             .enqueueUniquePeriodicWork(
                 GtfsRefreshWorker.WORK_NAME,

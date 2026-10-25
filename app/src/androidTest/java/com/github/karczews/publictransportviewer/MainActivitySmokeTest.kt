@@ -8,8 +8,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Launches the real MainActivity with this build's production map SDK list (fake repositories via
- * KoinTestRunner), so the activity wiring and the SDK start-up path stay covered on a device.
+ * Launches the real MainActivity with this build's production map SDK list (fake repositories via KoinTestRunner), so
+ * the activity wiring and the SDK start-up path stay covered on a device.
  */
 class MainActivitySmokeTest {
 

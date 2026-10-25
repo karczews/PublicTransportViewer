@@ -9,8 +9,7 @@ import com.github.karczews.publictransportviewer.data.db.entity.TripEntity
 @Dao
 interface TripDao {
 
-    @Query("SELECT * FROM gtfs_trips WHERE trip_id = :tripId")
-    suspend fun getTripById(tripId: String): TripEntity?
+    @Query("SELECT * FROM gtfs_trips WHERE trip_id = :tripId") suspend fun getTripById(tripId: String): TripEntity?
 
     @Query("SELECT * FROM gtfs_trips WHERE route_id = :routeId")
     suspend fun getTripsByRouteId(routeId: String): List<TripEntity>

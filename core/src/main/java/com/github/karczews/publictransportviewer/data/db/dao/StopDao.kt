@@ -9,8 +9,7 @@ import com.github.karczews.publictransportviewer.data.db.entity.StopEntity
 @Dao
 interface StopDao {
 
-    @Query("SELECT * FROM gtfs_stops WHERE stop_id = :stopId")
-    suspend fun getStopById(stopId: String): StopEntity?
+    @Query("SELECT * FROM gtfs_stops WHERE stop_id = :stopId") suspend fun getStopById(stopId: String): StopEntity?
 
     @Query("SELECT * FROM gtfs_stops WHERE stop_name LIKE '%' || :query || '%' LIMIT 50")
     suspend fun searchStopsByName(query: String): List<StopEntity>

@@ -20,8 +20,7 @@ internal fun vehicleFeatures(
     FeatureCollection(
         vehicles.map { vehicle ->
             Feature(
-                geometry =
-                    Point(Position(longitude = vehicle.longitude, latitude = vehicle.latitude)),
+                geometry = Point(Position(longitude = vehicle.longitude, latitude = vehicle.latitude)),
                 properties =
                     JsonObject(
                         mapOf(
@@ -37,8 +36,7 @@ internal fun vehicleFeatures(
 /** The route shape, or null when it has fewer than 2 points (a LineString needs at least 2). */
 internal fun routeLine(route: RouteDisplayData): FeatureCollection<LineString, JsonObject>? {
     if (route.polylinePoints.size < 2) return null
-    val line =
-        LineString(route.polylinePoints.map { Position(longitude = it.lon, latitude = it.lat) })
+    val line = LineString(route.polylinePoints.map { Position(longitude = it.lon, latitude = it.lat) })
     return FeatureCollection(Feature(geometry = line, properties = JsonObject(emptyMap())))
 }
 

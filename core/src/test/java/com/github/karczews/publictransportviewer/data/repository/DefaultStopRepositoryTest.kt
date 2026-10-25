@@ -285,8 +285,7 @@ private class FakeRouteDao(private val routes: Map<String, RouteEntity>) : Route
 private class FakeTripDao(private val trips: Map<String, TripEntity>) : TripDao {
     override suspend fun getTripById(tripId: String) = trips[tripId]
 
-    override suspend fun getTripsByRouteId(routeId: String) =
-        trips.values.filter { it.routeId == routeId }
+    override suspend fun getTripsByRouteId(routeId: String) = trips.values.filter { it.routeId == routeId }
 
     override suspend fun insertAll(trips: List<TripEntity>) {}
 

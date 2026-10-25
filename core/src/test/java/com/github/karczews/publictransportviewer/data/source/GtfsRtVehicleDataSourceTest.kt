@@ -230,12 +230,9 @@ private class FakeGtfsRtApi(
     private val vehiclePositionsFeed: FeedMessage = FeedMessage.getDefaultInstance(),
 ) : GtfsRtApi {
 
-    override suspend fun fetchVehiclePositions(): Result<FeedMessage> =
-        Result.success(vehiclePositionsFeed)
+    override suspend fun fetchVehiclePositions(): Result<FeedMessage> = Result.success(vehiclePositionsFeed)
 
-    override suspend fun fetchTripUpdates(): Result<FeedMessage> =
-        Result.success(FeedMessage.getDefaultInstance())
+    override suspend fun fetchTripUpdates(): Result<FeedMessage> = Result.success(FeedMessage.getDefaultInstance())
 
-    override suspend fun fetchAlerts(): Result<FeedMessage> =
-        Result.success(FeedMessage.getDefaultInstance())
+    override suspend fun fetchAlerts(): Result<FeedMessage> = Result.success(FeedMessage.getDefaultInstance())
 }

@@ -5,10 +5,7 @@ import com.github.karczews.publictransportviewer.core.R
 import com.github.karczews.publictransportviewer.data.model.VehiclePosition
 import com.github.karczews.publictransportviewer.data.model.VehicleType
 
-/**
- * Route number shown on a vehicle marker; falls back to the route id when static data has none
- * (missing or blank).
- */
+/** Route number shown on a vehicle marker; falls back to the route id when static data has none (missing or blank). */
 fun vehicleLabel(vehicle: VehiclePosition): String =
     vehicle.routeShortName?.takeIf { it.isNotBlank() } ?: vehicle.routeId
 

@@ -33,8 +33,7 @@ class DefaultRouteDisplayRepository(
 
         val stopTimes = stopTimeDao.getStopTimesForTrip(tripId)
         val stopIds = stopTimes.map { it.stopId }.distinct()
-        val stopsById =
-            stopIds.mapNotNull { id -> stopDao.getStopById(id)?.let { id to it } }.toMap()
+        val stopsById = stopIds.mapNotNull { id -> stopDao.getStopById(id)?.let { id to it } }.toMap()
 
         val routeStops =
             stopTimes

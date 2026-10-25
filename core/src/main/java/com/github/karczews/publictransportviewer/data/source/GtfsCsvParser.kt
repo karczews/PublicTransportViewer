@@ -152,8 +152,7 @@ object GtfsCsvParser {
         return fields
     }
 
-    private fun String.stripBom(): String =
-        if (isNotEmpty() && this[0].code == BYTE_ORDER_MARK) substring(1) else this
+    private fun String.stripBom(): String = if (isNotEmpty() && this[0].code == BYTE_ORDER_MARK) substring(1) else this
 
     private fun List<String>.getValue(header: List<String>, column: String): String {
         val index = header.indexOf(column)

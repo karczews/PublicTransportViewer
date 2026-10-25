@@ -39,8 +39,7 @@ class DefaultVehicleRepository(
         positions: List<VehiclePosition>,
     ): List<VehiclePosition> {
         val routeIds = positions.map { it.routeId }.distinct()
-        val routes =
-            routeIds.mapNotNull { id -> routeDao.getRouteById(id)?.let { id to it } }.toMap()
+        val routes = routeIds.mapNotNull { id -> routeDao.getRouteById(id)?.let { id to it } }.toMap()
 
         return positions.map { vehicle ->
             val route = routes[vehicle.routeId]

@@ -15,9 +15,7 @@ class GtfsRtAlertDataSource(private val api: GtfsRtApi) : AlertDataSource {
 
     override suspend fun getAlerts(): List<ServiceAlert> {
         val feedMessage = api.fetchAlerts().getOrThrow()
-        return feedMessage.entityList
-            .filter { it.hasAlert() }
-            .map { entity -> mapAlert(entity.id, entity.alert) }
+        return feedMessage.entityList.filter { it.hasAlert() }.map { entity -> mapAlert(entity.id, entity.alert) }
     }
 
     private fun mapAlert(entityId: String, alert: GtfsRealtime.Alert): ServiceAlert {
@@ -28,17 +26,14 @@ class GtfsRtAlertDataSource(private val api: GtfsRtApi) : AlertDataSource {
                     endEpochSeconds = if (it.hasEnd()) it.end else null,
                 )
             }
-        val routeIds =
-            alert.informedEntityList.filter { it.hasRouteId() }.map { it.routeId }.distinct()
-        val stopIds =
-            alert.informedEntityList.filter { it.hasStopId() }.map { it.stopId }.distinct()
+        val routeIds = alert.informedEntityList.filter { it.hasRouteId() }.map { it.routeId }.distinct()
+        val stopIds = alert.informedEntityList.filter { it.hasStopId() }.map { it.stopId }.distinct()
         val url = if (alert.hasUrl()) extractText(alert.url) else null
 
         return ServiceAlert(
             alertId = entityId,
             headerText = if (alert.hasHeaderText()) extractText(alert.headerText) else "",
-            descriptionText =
-                if (alert.hasDescriptionText()) extractText(alert.descriptionText) else "",
+            descriptionText = if (alert.hasDescriptionText()) extractText(alert.descriptionText) else "",
             cause = mapCause(alert.cause),
             effect = mapEffect(alert.effect),
             activePeriods = activePeriods,

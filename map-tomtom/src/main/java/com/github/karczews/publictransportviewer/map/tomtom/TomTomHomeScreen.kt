@@ -63,8 +63,7 @@ import com.tomtom.sdk.map.display.image.ImageFactory
 import com.tomtom.sdk.map.display.marker.Label
 import kotlinx.coroutines.launch
 
-private val LODZ_CENTER =
-    GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longitude = HomeMapDefaults.CENTER_LON)
+private val LODZ_CENTER = GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longitude = HomeMapDefaults.CENTER_LON)
 
 // Route line widths per zoom level, mirroring the MapLibre casing + line pair.
 private val ROUTE_LINE_WIDTHS =
@@ -153,11 +152,7 @@ private fun BoxScope.RecenterButton(
             }
             onRecenter()
         },
-        modifier =
-            Modifier.align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .size(48.dp)
-                .testTag("recenter_button"),
+        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).size(48.dp).testTag("recenter_button"),
     ) {
         Icon(
             painter = painterResource(CoreR.drawable.ic_my_location),

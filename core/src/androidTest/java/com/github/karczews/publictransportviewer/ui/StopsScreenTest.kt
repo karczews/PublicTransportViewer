@@ -41,10 +41,7 @@ class StopsScreenTest {
     fun typingQuery_showsMatchingStops() {
         composeRule.onNodeWithTag("search_field").performTextInput("Piotrkowska")
         composeRule.waitUntil(3_000) {
-            composeRule
-                .onAllNodes(hasText("Piotrkowska Centrum"))
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+            composeRule.onAllNodes(hasText("Piotrkowska Centrum")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Piotrkowska Centrum").assertIsDisplayed()
     }
@@ -106,10 +103,7 @@ class StopsScreenTest {
 
         composeRule.onNodeWithTag("back_button").performClick()
         composeRule.waitUntil(3_000) {
-            composeRule
-                .onAllNodes(hasText("Piotrkowska Centrum"))
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+            composeRule.onAllNodes(hasText("Piotrkowska Centrum")).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Piotrkowska Centrum").assertIsDisplayed()
     }

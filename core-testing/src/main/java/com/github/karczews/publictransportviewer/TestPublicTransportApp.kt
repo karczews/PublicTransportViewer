@@ -27,9 +27,9 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Test [Application] installed by [KoinTestRunner]. Starts Koin with [testModule] only — fake
- * repositories plus the real view models — so instrumented UI tests run against fixed data with no
- * database, network, or WorkManager involvement.
+ * Test [Application] installed by [KoinTestRunner]. Starts Koin with [testModule] only — fake repositories plus the
+ * real view models — so instrumented UI tests run against fixed data with no database, network, or WorkManager
+ * involvement.
  */
 class TestPublicTransportApp : Application() {
     override fun onCreate() {

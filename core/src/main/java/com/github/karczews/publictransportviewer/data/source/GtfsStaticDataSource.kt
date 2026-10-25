@@ -49,8 +49,7 @@ class GtfsStaticDataSource(
             }
         }
 
-    suspend fun isDataAvailable(): Boolean =
-        database.metadataDao().getValue(KEY_LAST_DOWNLOAD) != null
+    suspend fun isDataAvailable(): Boolean = database.metadataDao().getValue(KEY_LAST_DOWNLOAD) != null
 
     private suspend fun importZip(zipStream: ZipInputStream) {
         var entry = zipStream.nextEntry
@@ -123,7 +122,6 @@ class GtfsStaticDataSource(
     companion object {
         private const val TAG = "GtfsStaticDataSource"
         const val KEY_LAST_DOWNLOAD = "last_download_timestamp"
-        private val HANDLED_FILES =
-            setOf("routes.txt", "stops.txt", "trips.txt", "stop_times.txt", "shapes.txt")
+        private val HANDLED_FILES = setOf("routes.txt", "stops.txt", "trips.txt", "stop_times.txt", "shapes.txt")
     }
 }

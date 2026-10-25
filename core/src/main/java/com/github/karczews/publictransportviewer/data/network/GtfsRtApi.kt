@@ -16,11 +16,9 @@ interface GtfsRtApi {
 
 class GtfsRtApiImpl(private val client: OkHttpClient) : GtfsRtApi {
 
-    override suspend fun fetchVehiclePositions(): Result<FeedMessage> =
-        fetchFeed(GtfsEndpoints.vehiclePositionsUrl())
+    override suspend fun fetchVehiclePositions(): Result<FeedMessage> = fetchFeed(GtfsEndpoints.vehiclePositionsUrl())
 
-    override suspend fun fetchTripUpdates(): Result<FeedMessage> =
-        fetchFeed(GtfsEndpoints.tripUpdatesUrl())
+    override suspend fun fetchTripUpdates(): Result<FeedMessage> = fetchFeed(GtfsEndpoints.tripUpdatesUrl())
 
     override suspend fun fetchAlerts(): Result<FeedMessage> = fetchFeed(GtfsEndpoints.alertsUrl())
 

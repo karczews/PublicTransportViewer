@@ -71,8 +71,7 @@ class DefaultStopRepository(
         val tripIds = candidates.map { it.first.tripId }.distinct()
         val trips = tripIds.mapNotNull { id -> tripDao.getTripById(id)?.let { id to it } }.toMap()
         val routeIds = trips.values.map { it.routeId }.distinct()
-        val routes =
-            routeIds.mapNotNull { id -> routeDao.getRouteById(id)?.let { id to it } }.toMap()
+        val routes = routeIds.mapNotNull { id -> routeDao.getRouteById(id)?.let { id to it } }.toMap()
 
         val delayByTripId = tripUpdates.associate { update ->
             val delay =
@@ -94,9 +93,7 @@ class DefaultStopRepository(
                     scheduledDepartureSecondsOfDay = depSeconds,
                     delaySeconds = delayByTripId[trip.tripId],
                     routeColor = route.routeColor,
-                    vehicleType =
-                        if (route.routeType == TRAM_ROUTE_TYPE) VehicleType.TRAM
-                        else VehicleType.BUS,
+                    vehicleType = if (route.routeType == TRAM_ROUTE_TYPE) VehicleType.TRAM else VehicleType.BUS,
                 )
             }
             .sortedBy { it.scheduledDepartureSecondsOfDay + (it.delaySeconds ?: 0) }

@@ -17,8 +17,8 @@ import com.github.karczews.publictransportviewer.map.MapSdk
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * The Home tab: waits for the chosen [MapSdk] to initialize, then hands the whole tab to its
- * [MapSdk.HomeScreen]. Initialization runs in [initializer], so leaving the tab doesn't cancel it.
+ * The Home tab: waits for the chosen [MapSdk] to initialize, then hands the whole tab to its [MapSdk.HomeScreen].
+ * Initialization runs in [initializer], so leaving the tab doesn't cancel it.
  */
 @Composable
 fun MapSdkHost(
@@ -27,8 +27,7 @@ fun MapSdkHost(
     modifier: Modifier = Modifier,
 ) {
     val sdk = mapSdks.first()
-    val initialState =
-        if (initializer.isReady(sdk.id)) MapSdkInitState.Ready else MapSdkInitState.Loading
+    val initialState = if (initializer.isReady(sdk.id)) MapSdkInitState.Ready else MapSdkInitState.Loading
     val state by
         produceState(initialState, sdk.id) {
             if (value != MapSdkInitState.Ready) {

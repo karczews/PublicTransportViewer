@@ -85,10 +85,9 @@ private val ROUTE_CASING_COLOR = Color(0x64000000)
 /**
  * Home tab rendered with maplibre-compose.
  *
- * Maptoolkit attribution is mandatory: its logo (>= 24dp, links to maptoolkit.org) and the style's
- * attribution button must stay visible and uncovered. Our own overlay replaces MapOverlay.Default
- * (which bundles the MapLibre logo, scale bar and compass); ours keeps only the Maptoolkit logo and
- * the attribution button.
+ * Maptoolkit attribution is mandatory: its logo (>= 24dp, links to maptoolkit.org) and the style's attribution button
+ * must stay visible and uncovered. Our own overlay replaces MapOverlay.Default (which bundles the MapLibre logo, scale
+ * bar and compass); ours keeps only the Maptoolkit logo and the attribution button.
  */
 @Composable
 internal fun MapLibreHomeScreen(
@@ -160,12 +159,9 @@ private fun AttributionOverlay(uriHandler: UriHandler) {
             painter = painterResource(R.drawable.maptoolkit_attribution),
             contentDescription = "Maptoolkit",
             modifier =
-                Modifier.align(Alignment.BottomStart)
-                    .height(24.dp)
-                    .testTag("maptoolkit_logo")
-                    .clickable {
-                        uriHandler.openUri(MAPTOOLKIT_URL)
-                    },
+                Modifier.align(Alignment.BottomStart).height(24.dp).testTag("maptoolkit_logo").clickable {
+                    uriHandler.openUri(MAPTOOLKIT_URL)
+                },
         )
         ExpandingAttributionButton(Modifier.align(Alignment.BottomEnd))
     }

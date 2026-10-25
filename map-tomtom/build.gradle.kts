@@ -33,13 +33,13 @@ spotless {
     // Spotless cannot infer Android source sets, so the target is set explicitly.
     kotlin {
         target("src/**/*.kt")
-        ktfmt().kotlinlangStyle()
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
         trimTrailingWhitespace()
         endWithNewline()
     }
     kotlinGradle {
         target("*.gradle.kts")
-        ktfmt().kotlinlangStyle()
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
     }
 }
 
