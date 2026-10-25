@@ -7,10 +7,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,7 +30,9 @@ import com.github.karczews.publictransportviewer.data.model.VehiclePosition
 import com.github.karczews.publictransportviewer.ui.home.HomeMapDefaults
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import com.github.karczews.publictransportviewer.ui.home.vehicleTitle
+import kotlinx.coroutines.launch
 import org.maplibre.compose.camera.CameraPosition
+import org.maplibre.compose.camera.CameraUpdate
 import org.maplibre.compose.expressions.dsl.asString
 import org.maplibre.compose.expressions.dsl.case
 import org.maplibre.compose.expressions.dsl.const
@@ -43,7 +49,11 @@ import org.maplibre.compose.expressions.value.SymbolAnchor
 import org.maplibre.compose.interaction.ClickResult
 import org.maplibre.compose.interaction.MapInteractions
 import org.maplibre.compose.layers.LineLayer
+import org.maplibre.compose.layers.LocationIndicatorLayer
 import org.maplibre.compose.layers.SymbolLayer
+import org.maplibre.compose.location.LocationPermission
+import org.maplibre.compose.location.rememberDefaultLocationProvider
+import org.maplibre.compose.location.rememberLocationState
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.overlay.ExpandingAttributionButton
@@ -75,6 +85,8 @@ internal fun MapLibreHomeScreen(
     val vehicles by viewModel.vehiclePositions.collectAsStateWithLifecycle()
     val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
     val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
+    val locationState = rememberLocationState(provider = rememberDefaultLocationProvider())
+    val hasLocationPermission = locationState.permission is LocationPermission.Granted
 
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(styleUrl),
@@ -85,9 +97,13 @@ internal fun MapLibreHomeScreen(
         content = {
             routeDisplay?.let { RouteLayers(it) }
             VehicleLayer(vehicles, onVehicleSelected = viewModel::onVehicleSelected)
+            if (hasLocationPermission) {
+                LocationIndicatorLayer(id = "user_location", locationState = locationState)
+            }
         },
     )
     val uriHandler = LocalUriHandler.current
+    val coroutineScope = rememberCoroutineScope()
 
     Box(modifier.fillMaxSize()) {
         MaplibreMap(
@@ -122,6 +138,34 @@ internal fun MapLibreHomeScreen(
             ) {
                 Text(vehicleTitle(vehicle), Modifier.padding(12.dp))
             }
+        }
+
+        FilledTonalIconButton(
+            onClick = {
+                if (!hasLocationPermission) {
+                    locationState.requestPermission()
+                    return@FilledTonalIconButton
+                }
+                locationState.lastLocation?.let { location ->
+                    coroutineScope.launch {
+                        mapState.animateCamera(
+                            CameraUpdate(center = location.position, zoom = HomeMapDefaults.RECENTER_ZOOM),
+                        )
+                    }
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .safeDrawingPadding()
+                // 56dp clears the attribution button below.
+                .padding(end = 16.dp, bottom = 56.dp)
+                .size(48.dp)
+                .testTag("recenter_button"),
+        ) {
+            Icon(
+                painter = painterResource(CoreR.drawable.ic_my_location),
+                contentDescription = "Recenter to my location",
+            )
         }
     }
 }
