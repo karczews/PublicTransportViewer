@@ -50,6 +50,11 @@ class VehicleFormattingTest {
     }
 
     @Test
+    fun label_fallsBackToRouteIdWhenShortNameBlank() {
+        assertEquals("50A", vehicleLabel(bus50.copy(routeShortName = " ", routeId = "50A")))
+    }
+
+    @Test
     fun title_fallsBackToRouteId() {
         assertEquals(
             "Tram 10X",

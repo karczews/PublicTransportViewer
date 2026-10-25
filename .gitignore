@@ -46,3 +46,7 @@ google-services.json
 
 # Claude Code local tooling
 .claude/
+
+# Superpowers planning docs and agent workspaces (kept local, not committed)
+docs/superpowers/
+.superpowers/
