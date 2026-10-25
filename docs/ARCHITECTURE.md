@@ -12,6 +12,7 @@ graph LR
     app[":app"] --> core[":core"]
     app -- tomtom flavor --> tomtom[":map-tomtom"]
     app -- maplibre flavor --> maplibre[":map-maplibre"]
+    app -. all flavor: both .-> tomtom
     tomtom --> core
     maplibre --> core
     testing[":core-testing"] --> core
@@ -22,7 +23,7 @@ graph LR
 
 | Module | Contents |
 |--------|----------|
-| `:app` | `PublicTransportApp`, `MainActivity`; flavors `tomtom` / `maplibre`, each with its own `src/<flavor>/…/AvailableMapSdks.kt` (the map SDKs that build ships) |
+| `:app` | `PublicTransportApp`, `MainActivity`; flavors `tomtom` / `maplibre` / `all`, each with its own `src/<flavor>/…/AvailableMapSdks.kt` (the map SDKs that build ships) |
 | `:core` | Room, GTFS static/RT pipelines, repositories, worker, `CoreModule` (Koin), view models, Stops/Alerts screens, theme, nav scaffold, `MapSdk` contract, `MapSdkHost` |
 | `:map-tomtom` | `TomTomMapSdk` + `TomTomHomeScreen` (TomTom SDK only) |
 | `:map-maplibre` | `MapLibreMapSdk` + `MapLibreHomeScreen` (maplibre-compose only) |
@@ -34,6 +35,23 @@ Each map SDK implements `MapSdk` (`id`, `displayName`, `initialize()`, `HomeScre
 whole Home tab. `MapSdkHost` (in `:core`) awaits `initialize()` through `MapSdkInitializer` — which
 runs it once, outside the composition, so leaving the tab does not cancel it — and shows a spinner
 or an error in the Home tab meanwhile. Stops and Alerts never wait for a map SDK.
+
+When a build ships more than one SDK (the `all` flavor, "PTV Compare"), `MapSdkHost` draws a
+segmented toggle top-center; the choice is saved in SharedPreferences (`map_sdk` / `map_sdk_id`) and an
+unknown or missing id falls back to the first SDK. Switching disposes the old map completely
+(`key(sdk.id)`), so only one map is alive at a time. Each SDK screen reads `HomeViewModel.camera` for its
+initial camera and reports `onCameraChanged` when its camera settles, so the next SDK opens on the same
+area and zoom; selection and route live in `HomeViewModel` and survive the switch. An initialized SDK
+stays loaded for the process, so size/startup/memory are measured with the single-SDK flavors.
+
+### Adding a new map SDK
+
+1. Create a `:map-xyz` library module depending on `:core` (add it to `settings.gradle.kts`).
+2. Implement `MapSdk` (`id`, `displayName`, `initialize()`, `HomeScreen()`); the module owns the whole Home tab.
+3. Add an `xyz` flavor in `app/build.gradle.kts` with `"xyzImplementation"(project(":map-xyz"))` and
+   `app/src/xyz/java/…/AvailableMapSdks.kt`.
+4. Add the module to the `all` flavor's dependencies and to `app/src/all/java/…/AvailableMapSdks.kt`.
+5. Add an instrumented smoke test (e.g. the recenter button is displayed) using `:core-testing` fakes.
 
 ### TomTom
 

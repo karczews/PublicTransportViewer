@@ -8,8 +8,9 @@ Guidance for AI coding agents working in this repository.
 ./gradlew assembleDebug          # Build debug APKs of every flavor
 ./gradlew installTomtomDebug     # Install the TomTom build ("PTV TomTom")
 ./gradlew installMaplibreDebug   # Install the MapLibre build ("PTV MapLibre")
+./gradlew installAllDebug        # Install the Compare build ("PTV Compare": every SDK + runtime toggle)
 ./gradlew test                   # Run unit tests
-./gradlew lintTomtomDebug lintMaplibreDebug  # Android lint, incl. library modules (no detekt/ktlint/spotless configured)
+./gradlew lintAllDebug           # Android lint, incl. all library modules (no detekt/ktlint/spotless configured)
 ./gradlew connectedAndroidTest   # Run instrumented tests on a connected device/emulator
 ./gradlew :core:testDebugUnitTest --tests "*.HomeViewModelTest"  # Run a single unit test class
 # Single instrumented test:
@@ -38,7 +39,7 @@ Feed URLs contain a hardcoded year/month path in `GtfsEndpoints` (currently `202
 
 Each map SDK implements `MapSdk` (`:core`, `map/MapSdk.kt`) and owns the **whole Home tab** — map, markers, location, permission flow, controls — so SDK-specific experiments stay inside that module. `MapSdkHost` awaits `MapSdk.initialize()` (showing a spinner in the Home tab) before rendering `MapSdk.HomeScreen`. `HomeMapDefaults` and `vehicleTitle`/`vehicleLabel`/`vehicleIconRes` in `:core` are optional shared helpers.
 
-`:app` has one product flavor per map SDK (dimension `mapSdk`: `tomtom`, `maplibre`); each flavor's `src/<flavor>/…/AvailableMapSdks.kt` lists the SDKs it ships and the flavor pulls in only that SDK's module. Flavors install side by side (`applicationIdSuffix`).
+`:app` has one product flavor per map SDK (dimension `mapSdk`: `tomtom`, `maplibre`) plus `all`; each flavor's `src/<flavor>/…/AvailableMapSdks.kt` lists the SDKs it ships and the flavor pulls in only those SDK modules. Flavors install side by side (`applicationIdSuffix`). With more than one SDK, `MapSdkHost` shows a top-center toggle (choice saved in SharedPreferences `map_sdk`) and `HomeViewModel.camera` hands the camera to the next SDK. Measure size/startup/memory with the single-SDK flavors; `all` is for look-and-feel only (an initialized SDK stays loaded for the process).
 
 **TomTom** (`:map-tomtom`) uses the TomTom Maps SDK Compose API (`map-display-compose-standard`, version `tomtomSdk` in the catalog). `TomTomMapSdk.initialize()` runs `TomTomSdk.initialize()`.
 

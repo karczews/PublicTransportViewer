@@ -51,6 +51,13 @@ android {
             applicationIdSuffix = ".maplibre"
             resValue("string", "app_name", "PTV MapLibre")
         }
+        // Bundles every map SDK with a runtime toggle: for look-and-feel comparison only.
+        // Measure size/startup/memory with the single-SDK flavors (an initialized SDK stays loaded).
+        create("all") {
+            dimension = "mapSdk"
+            applicationIdSuffix = ".all"
+            resValue("string", "app_name", "PTV Compare")
+        }
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
@@ -72,6 +79,8 @@ dependencies {
     implementation(project(":core"))
     "tomtomImplementation"(project(":map-tomtom"))
     "maplibreImplementation"(project(":map-maplibre"))
+    "allImplementation"(project(":map-tomtom"))
+    "allImplementation"(project(":map-maplibre"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
