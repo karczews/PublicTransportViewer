@@ -10,18 +10,22 @@ service alerts.
 ```mermaid
 graph LR
     app[":app"] --> core[":core"]
-    app --> tomtom[":map-tomtom"]
+    app -- tomtom flavor --> tomtom[":map-tomtom"]
+    app -- maplibre flavor --> maplibre[":map-maplibre"]
     tomtom --> core
+    maplibre --> core
     testing[":core-testing"] --> core
     core -. androidTest .-> testing
     tomtom -. androidTest .-> testing
+    maplibre -. androidTest .-> testing
 ```
 
 | Module | Contents |
 |--------|----------|
-| `:app` | `PublicTransportApp`, `MainActivity`, `AvailableMapSdks.kt` (the map SDKs this build ships) |
+| `:app` | `PublicTransportApp`, `MainActivity`; flavors `tomtom` / `maplibre`, each with its own `src/<flavor>/…/AvailableMapSdks.kt` (the map SDKs that build ships) |
 | `:core` | Room, GTFS static/RT pipelines, repositories, worker, `CoreModule` (Koin), view models, Stops/Alerts screens, theme, nav scaffold, `MapSdk` contract, `MapSdkHost` |
 | `:map-tomtom` | `TomTomMapSdk` + `TomTomHomeScreen` (TomTom SDK only) |
+| `:map-maplibre` | `MapLibreMapSdk` + `MapLibreHomeScreen` (maplibre-compose only) |
 | `:core-testing` | Instrumented-test fakes: `KoinTestRunner`, `TestPublicTransportApp`, `FixtureData`, `FakeMapSdk` |
 
 ## Map SDKs
@@ -36,6 +40,16 @@ or an error in the Home tab meanwhile. Stops and Alerts never wait for a map SDK
 The TomTom renderer (`:map-tomtom`) uses the **TomTom Maps SDK for Android** Jetpack Compose
 integration (`map-display-compose-standard`). `TomTomMapSdk.initialize()` initializes the SDK with
 an API key provided via the `tomtomApiKey` Gradle property (injected into `:map-tomtom`'s `BuildConfig`).
+
+### MapLibre
+
+The MapLibre renderer (`:map-maplibre`) uses **maplibre-compose** (`org.maplibre.compose`, backed by
+`maplibre-native-ffi`) with the Maptoolkit community style `https://styles.maptoolkit.org/summer.json`
+(no API key). Map content is declarative: GeoJSON sources plus Symbol/Line layers inside
+`rememberMapState(content = { … })`. Our own map `overlay` draws the mandatory Maptoolkit logo
+(≥ 24dp, bottom-start) and keeps the library's attribution button (bottom-end); it replaces
+`MapOverlay.Default`, which also drops the MapLibre logo. Exactly one native render runtime
+(OpenGL by default, Vulkan optional) is declared in `map-maplibre/build.gradle.kts`.
 
 Key TomTom Compose components used:
 
