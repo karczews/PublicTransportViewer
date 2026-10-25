@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,7 +29,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.github.karczews.publictransportviewer.core.R as CoreR
 import com.github.karczews.publictransportviewer.data.model.RouteDisplayData
 import com.github.karczews.publictransportviewer.data.model.RouteStop
@@ -71,6 +75,35 @@ private val LODZ_CENTER = GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longit
 fun TomTomHomeScreen(
     viewModel: HomeViewModel,
     modifier: Modifier = Modifier,
+) {
+    CompositionLocalProvider(LocalViewModelStoreOwner provides rememberScreenViewModelStoreOwner()) {
+        TomTomHomeContent(viewModel, modifier)
+    }
+}
+
+/**
+ * TomTom's rememberMapViewState keeps the map state in a ViewModel of LocalViewModelStoreOwner (the
+ * Activity), so a re-shown screen (e.g. after switching map SDK) would get the old state and ignore
+ * its initial camera. Each showing gets its own store, cleared when the screen leaves composition;
+ * the camera survives through HomeViewModel.camera instead.
+ */
+@Composable
+private fun rememberScreenViewModelStoreOwner(): ViewModelStoreOwner {
+    val owner = remember {
+        object : ViewModelStoreOwner {
+            override val viewModelStore = ViewModelStore()
+        }
+    }
+    DisposableEffect(owner) {
+        onDispose { owner.viewModelStore.clear() }
+    }
+    return owner
+}
+
+@Composable
+private fun TomTomHomeContent(
+    viewModel: HomeViewModel,
+    modifier: Modifier,
 ) {
     val vehicles by viewModel.vehiclePositions.collectAsStateWithLifecycle()
     val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
@@ -192,8 +225,10 @@ private fun VehicleMarker(
 ) {
     val markerState = rememberMarkerState()
     LaunchedEffect(isSelected) {
-        if (!isSelected && markerState.isSelected()) {
-            markerState.deselect()
+        when (markerSelectionChange(isSelected, markerState.isSelected())) {
+            MarkerSelectionChange.SELECT -> markerState.select()
+            MarkerSelectionChange.DESELECT -> markerState.deselect()
+            null -> Unit
         }
     }
     Marker(
@@ -213,10 +248,8 @@ private fun VehicleMarker(
             balloonText = vehicleTitle(vehicle)
         },
         state = markerState,
-        onClick = {
-            if (markerState.isSelected()) markerState.deselect() else markerState.select()
-            onSelect()
-        },
+        // The view model toggles the selection; the effect above mirrors it onto the marker.
+        onClick = onSelect,
     )
 }
 

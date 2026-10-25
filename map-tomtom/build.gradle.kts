@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.tomtom.sdk.init) {
         // TomTom pulls protobuf-javalite which duplicates classes in protobuf-java
         // (brought by org.mobilitydata:gtfs-realtime-bindings). protobuf-java is the
@@ -43,6 +44,7 @@ dependencies {
     implementation(libs.tomtom.sdk.map.display.compose) {
         exclude(group = "com.google.protobuf", module = "protobuf-javalite")
     }
+    testImplementation(libs.junit)
     androidTestImplementation(project(":core-testing"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
