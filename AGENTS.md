@@ -43,7 +43,7 @@ Each map SDK implements `MapSdk` (`:core`, `map/MapSdk.kt`) and owns the **whole
 
 **TomTom** (`:map-tomtom`) uses the TomTom Maps SDK Compose API (`map-display-compose-standard`, version `tomtomSdk` in the catalog). `TomTomMapSdk.initialize()` runs `TomTomSdk.initialize()`.
 
-Key composables: `TomTomMap` (map surface), `Marker` (vehicles/stops), `Polyline` (route shapes), `CurrentLocationMarker` (blue dot). The location provider lifecycle (`enable()`/`disable()`) must be managed manually in a `DisposableEffect`.
+Key composables: `TomTomMap` (map surface), `Marker` (vehicles/stops), `Polyline` (route shapes), `CurrentLocationMarker` (blue dot). The location provider lifecycle (`enable()`/`disable()`) must be managed manually in a `DisposableEffect`. `rememberMapViewState` keeps its state in a ViewModel of `LocalViewModelStoreOwner`; `TomTomHomeScreen` therefore gives each showing its own `ViewModelStore` (cleared on dispose), otherwise a re-shown screen reuses the old map state and ignores its initial camera (the SDK-switch handoff).
 
 **MapLibre** (`:map-maplibre`) uses maplibre-compose (pre-1.0; the public docs lag the API — the verified 0.20.0 API is in `docs/superpowers/plans/2026-10-25-map-sdk-flavors-maplibre-api.md`) with the Maptoolkit `summer.json` style. Maptoolkit attribution is mandatory: its logo (≥ 24dp, bottom-start, links to maptoolkit.org) and the attribution button must stay visible and uncovered. The OpenGL/Vulkan render backend is a single `runtimeOnly` line, documented in `map-maplibre/build.gradle.kts`. Instrumented tests use `androidx.compose.ui.test.junit4.v2.createComposeRule` — the v1 rule's unconfined dispatcher trips maplibre-compose's main-thread guard.
 

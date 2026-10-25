@@ -59,16 +59,6 @@ The TomTom renderer (`:map-tomtom`) uses the **TomTom Maps SDK for Android** Jet
 integration (`map-display-compose-standard`). `TomTomMapSdk.initialize()` initializes the SDK with
 an API key provided via the `tomtomApiKey` Gradle property (injected into `:map-tomtom`'s `BuildConfig`).
 
-### MapLibre
-
-The MapLibre renderer (`:map-maplibre`) uses **maplibre-compose** (`org.maplibre.compose`, backed by
-`maplibre-native-ffi`) with the Maptoolkit community style `https://styles.maptoolkit.org/summer.json`
-(no API key). Map content is declarative: GeoJSON sources plus Symbol/Line layers inside
-`rememberMapState(content = { … })`. Our own map `overlay` draws the mandatory Maptoolkit logo
-(≥ 24dp, bottom-start) and keeps the library's attribution button (bottom-end); it replaces
-`MapOverlay.Default`, which also drops the MapLibre logo. Exactly one native render runtime
-(OpenGL by default, Vulkan optional) is declared in `map-maplibre/build.gradle.kts`.
-
 Key TomTom Compose components used:
 
 | Component | Purpose |
@@ -82,6 +72,17 @@ Key TomTom Compose components used:
 
 The map is configured in `MapDisplayInfrastructure` which binds `TomTomSdk.sdkContext`
 and `TomTomSdk.locationProvider` to the map display.
+
+### MapLibre
+
+The MapLibre renderer (`:map-maplibre`) uses **maplibre-compose** (`org.maplibre.compose`, backed by
+`maplibre-native-ffi`) with the Maptoolkit community style `https://styles.maptoolkit.org/summer.json`
+(no API key). Map content is declarative: GeoJSON sources plus Symbol/Line layers inside
+`rememberMapState(content = { … })`. Our own map `overlay` draws the mandatory Maptoolkit logo
+(≥ 24dp, bottom-start) and keeps the library's attribution button (bottom-end); it replaces
+`MapOverlay.Default`, which also drops the MapLibre logo. Exactly one native render runtime
+(OpenGL by default, Vulkan optional) is declared in `map-maplibre/build.gradle.kts`.
+
 
 ## Data Sources and Formats
 
@@ -543,6 +544,7 @@ stateDiagram-v2
 | Library | Version | Purpose |
 |---------|---------|---------|
 | TomTom Maps SDK | 2.2.1 | Map rendering, markers, polylines, location |
+| maplibre-compose | 0.20.0 | MapLibre map rendering (`:map-maplibre`), GeoJSON layers, location |
 | Jetpack Compose BOM | 2025.12.00 | UI framework |
 | Material 3 | (from BOM) | Design system, adaptive navigation |
 | Room | 2.8.4 | Local SQLite database for GTFS static data |
@@ -567,16 +569,31 @@ stateDiagram-v2
 ```
 app/src/main/java/com/github/karczews/publictransportviewer/
 ├── PublicTransportApp.kt          # Application class, starts Koin, schedules GTFS refresh
-├── MainActivity.kt                # setContent { PublicTransportViewerApp(availableMapSdks) }
-└── AvailableMapSdks.kt            # Map SDKs this build ships
+└── MainActivity.kt                # setContent { PublicTransportViewerApp(availableMapSdks) }
+app/src/{tomtom,maplibre,all}/java/com/github/karczews/publictransportviewer/
+└── AvailableMapSdks.kt            # Map SDKs this flavor ships (first = default)
 
 map-tomtom/src/main/java/com/github/karczews/publictransportviewer/map/tomtom/
 ├── TomTomMapSdk.kt                # MapSdk: TomTom SDK init + Home screen
-└── TomTomHomeScreen.kt            # Map with vehicles, route overlay, location
+├── TomTomHomeScreen.kt            # Map with vehicles, route overlay, location
+└── MarkerSelection.kt             # Mirrors view-model selection onto marker balloons
+
+map-maplibre/src/main/java/com/github/karczews/publictransportviewer/map/maplibre/
+├── MapLibreMapSdk.kt              # MapSdk: Maptoolkit style + Home screen
+├── MapLibreHomeScreen.kt          # Map, GeoJSON layers, info card, location, attribution
+└── MapLibreFeatures.kt            # Vehicles/route/stops -> GeoJSON features (unit-tested)
+
+core-testing/src/main/java/com/github/karczews/publictransportviewer/
+├── KoinTestRunner.kt              # Instrumented runner installing TestPublicTransportApp
+├── TestPublicTransportApp.kt      # Koin test module, FixtureData, Fixed* repositories
+└── map/FakeMapSdk.kt              # MapSdk with an empty, tagged Home screen
 
 core/src/main/java/com/github/karczews/publictransportviewer/
 ├── di/CoreModule.kt               # Koin graph
-├── map/MapSdk.kt                  # Contract every map SDK module implements
+├── map/
+│   ├── MapSdk.kt                  # Contract every map SDK module implements
+│   ├── MapSdkSelection.kt         # resolveMapSdk: saved choice or the flavor's default
+│   └── MapSdkPreference.kt        # Toggle choice in SharedPreferences
 ├── data/
 │   ├── db/
 │   │   ├── GtfsDatabase.kt        # Room database definition
@@ -612,6 +629,7 @@ core/src/main/java/com/github/karczews/publictransportviewer/
     │   ├── MapSdkInitializer.kt     # Runs each MapSdk.initialize() once, outside composition
     │   ├── HomeMapDefaults.kt       # Shared start camera / recenter zoom
     │   ├── VehicleFormatting.kt     # Shared vehicle label/title/icon helpers
+    │   ├── MapCamera.kt             # Camera handed from one SDK screen to the next
     │   └── HomeViewModel.kt         # Vehicle polling, route selection
     ├── stops/
     │   ├── StopsScreen.kt           # Search + departure board UI
