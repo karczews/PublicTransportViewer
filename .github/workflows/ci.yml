@@ -25,8 +25,11 @@ jobs:
     uses: ./.github/workflows/code-quality.yml
 
   gate:
-    if: github.event_name == 'pull_request'
+    # always() so a failed dependency fails the gate instead of skipping it.
+    if: always() && github.event_name == 'pull_request'
     needs: [unit-tests, lint, build, code-quality]
     runs-on: ubuntu-latest
     steps:
+      - run: exit 1
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
       - run: echo "All checks passed"
