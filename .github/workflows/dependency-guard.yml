@@ -1,0 +1,23 @@
+name: Dependency Guard
+
+on:
+  workflow_call:
+
+jobs:
+  dependency-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25.0.5+8.0.LTS
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # Fails when the transitive dependency closure of a release configuration changed
+      # without a baseline update. If the change is intentional, run
+      # `./gradlew dependencyGuardBaseline -PtomtomApiKey=""` locally and commit the
+      # updated `*/dependencies/*.txt` baselines.
+      - run: ./gradlew dependencyGuard -PtomtomApiKey=""

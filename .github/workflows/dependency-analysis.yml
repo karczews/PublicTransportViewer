@@ -1,0 +1,31 @@
+name: Dependency Analysis
+
+on:
+  workflow_call:
+
+jobs:
+  dependency-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25.0.5+8.0.LTS
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # Fails on unused dependencies and wrong scopes (e.g. debug code in `implementation`).
+      # Transitive-declaration and api-vs-implementation advice is warn-only (see the
+      # `dependencyAnalysis` block in the root build.gradle.kts for why).
+      - run: ./gradlew buildHealth -PtomtomApiKey=""
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dependency-analysis-reports
+          path: |
+            build/reports/dependency-analysis/
+            */build/reports/dependency-analysis/
+          retention-days: 14

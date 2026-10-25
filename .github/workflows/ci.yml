@@ -24,10 +24,22 @@ jobs:
   code-quality:
     uses: ./.github/workflows/code-quality.yml
 
+  size-report:
+    uses: ./.github/workflows/size-report.yml
+
+  dependency-guard:
+    uses: ./.github/workflows/dependency-guard.yml
+
+  dependency-analysis:
+    uses: ./.github/workflows/dependency-analysis.yml
+
+  room-schema:
+    uses: ./.github/workflows/room-schema.yml
+
   gate:
     # always() so a failed dependency fails the gate instead of skipping it.
     if: always() && github.event_name == 'pull_request'
-    needs: [unit-tests, lint, build, code-quality]
+    needs: [unit-tests, lint, build, code-quality, size-report, dependency-guard, dependency-analysis, room-schema]
     runs-on: ubuntu-latest
     steps:
       - run: exit 1

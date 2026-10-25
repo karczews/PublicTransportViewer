@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.dependency.guard)
+    alias(libs.plugins.dependency.analysis)
+}
+
+dependencyGuard {
+    configuration("releaseRuntimeClasspath")
 }
 
 val tomtomApiKey: String = findProperty("tomtomApiKey") as? String ?: ""
@@ -56,6 +62,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.tomtom.sdk.init) {
         // TomTom pulls protobuf-javalite which duplicates classes in protobuf-java
         // (brought by org.mobilitydata:gtfs-realtime-bindings). protobuf-java is the
@@ -68,8 +75,6 @@ dependencies {
     androidTestImplementation(project(":core-testing"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.junit)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugRuntimeOnly(libs.androidx.compose.ui.test.manifest)
     detektPlugins(libs.detekt.compose.rules)
 }
