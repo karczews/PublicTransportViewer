@@ -4,13 +4,12 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.github.karczews.publictransportviewer.map.MapSdk
-import com.github.karczews.publictransportviewer.ui.home.HomeScreen
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import com.tomtom.sdk.common.configuration.buildSdkConfiguration
 import com.tomtom.sdk.init.TomTomSdk
 import com.tomtom.sdk.telemetry.UserConsent
 
-class TomTomMapSdk(private val apiKey: String) : MapSdk {
+class TomTomMapSdk(private val apiKey: String = BuildConfig.TOMTOM_API_KEY) : MapSdk {
     override val id = "tomtom"
     override val displayName = "TomTom"
 
@@ -29,6 +28,6 @@ class TomTomMapSdk(private val apiKey: String) : MapSdk {
 
     @Composable
     override fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier) {
-        HomeScreen(viewModel = viewModel, modifier = modifier)
+        TomTomHomeScreen(viewModel = viewModel, modifier = modifier)
     }
 }

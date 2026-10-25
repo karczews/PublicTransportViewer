@@ -4,8 +4,6 @@ plugins {
     alias(libs.plugins.koin.compiler)
 }
 
-val tomtomApiKey: String = findProperty("tomtomApiKey") as? String ?: ""
-
 android {
     namespace = "com.github.karczews.publictransportviewer"
     compileSdk = 37
@@ -38,13 +36,9 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
-    }
-    buildTypes.configureEach {
-        buildConfigField("String", "TOMTOM_API_KEY", "\"$tomtomApiKey\"")
     }
     lint {
         checkDependencies = true
@@ -61,6 +55,7 @@ koinCompiler {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":map-tomtom"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -72,15 +67,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.work.runtime.ktx)
-    implementation(libs.tomtom.sdk.init) {
-        // TomTom pulls protobuf-javalite which duplicates classes in protobuf-java
-        // (brought by org.mobilitydata:gtfs-realtime-bindings). protobuf-java is the
-        // superset and required by the GTFS bindings' GeneratedMessageV3 code, so drop lite.
-        exclude(group = "com.google.protobuf", module = "protobuf-javalite")
-    }
-    implementation(libs.tomtom.sdk.map.display.compose) {
-        exclude(group = "com.google.protobuf", module = "protobuf-javalite")
-    }
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
