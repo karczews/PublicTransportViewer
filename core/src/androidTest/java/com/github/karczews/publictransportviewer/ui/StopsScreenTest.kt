@@ -3,12 +3,13 @@ package com.github.karczews.publictransportviewer.ui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.github.karczews.publictransportviewer.MainActivity
+import com.github.karczews.publictransportviewer.map.FakeMapSdk
+import com.github.karczews.publictransportviewer.ui.theme.PublicTransportViewerTheme
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -16,10 +17,13 @@ import org.junit.Test
 class StopsScreenTest {
 
     @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
+    val composeRule = createComposeRule()
 
     @Before
     fun setUp() {
+        composeRule.setContent {
+            PublicTransportViewerTheme { PublicTransportViewerApp(listOf(FakeMapSdk())) }
+        }
         composeRule.onNodeWithText("Stops").performClick()
         composeRule.waitForIdle()
     }
