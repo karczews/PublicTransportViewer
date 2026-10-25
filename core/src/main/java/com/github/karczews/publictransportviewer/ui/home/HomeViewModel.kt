@@ -33,6 +33,10 @@ class HomeViewModel(
     private val _routeDisplay = MutableStateFlow<RouteDisplayData?>(null)
     val routeDisplay: StateFlow<RouteDisplayData?> = _routeDisplay.asStateFlow()
 
+    private val _camera = MutableStateFlow<MapCamera?>(null)
+    /** Last settled map camera; null means use [HomeMapDefaults]. Lets a new SDK screen start where the last one left off. */
+    val camera: StateFlow<MapCamera?> = _camera.asStateFlow()
+
     private var routeLoadJob: Job? = null
 
     init {
@@ -60,6 +64,10 @@ class HomeViewModel(
         routeLoadJob = viewModelScope.launch {
             _routeDisplay.value = vehicle.tripId?.let { routeDisplayRepository.loadRouteForTrip(it) }
         }
+    }
+
+    fun onCameraChanged(camera: MapCamera) {
+        _camera.value = camera
     }
 
     fun clearSelection() {

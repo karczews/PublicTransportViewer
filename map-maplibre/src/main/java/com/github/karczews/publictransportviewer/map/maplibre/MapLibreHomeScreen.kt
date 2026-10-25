@@ -13,8 +13,10 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,7 +31,9 @@ import com.github.karczews.publictransportviewer.data.model.RouteDisplayData
 import com.github.karczews.publictransportviewer.data.model.VehiclePosition
 import com.github.karczews.publictransportviewer.ui.home.HomeMapDefaults
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
+import com.github.karczews.publictransportviewer.ui.home.MapCamera
 import com.github.karczews.publictransportviewer.ui.home.vehicleTitle
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraUpdate
@@ -90,7 +94,10 @@ internal fun MapLibreHomeScreen(
 
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(styleUrl),
-        initialCameraPosition = CameraPosition(
+        // Start where the previous SDK's map left off (camera handoff), else at the shared defaults.
+        initialCameraPosition = viewModel.camera.value?.let {
+            CameraPosition(center = Position(longitude = it.lon, latitude = it.lat), zoom = it.zoom)
+        } ?: CameraPosition(
             center = Position(longitude = HomeMapDefaults.CENTER_LON, latitude = HomeMapDefaults.CENTER_LAT),
             zoom = HomeMapDefaults.INITIAL_ZOOM,
         ),
@@ -102,6 +109,13 @@ internal fun MapLibreHomeScreen(
             }
         },
     )
+    LaunchedEffect(mapState) {
+        snapshotFlow { mapState.isCameraMoving to mapState.cameraPosition }
+            .filter { (moving, _) -> !moving }
+            .collect { (_, position) ->
+                viewModel.onCameraChanged(MapCamera(position.center.latitude, position.center.longitude, position.zoom))
+            }
+    }
     val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
 

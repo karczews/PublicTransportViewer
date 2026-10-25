@@ -218,6 +218,22 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertEquals(2, viewModel.vehiclePositions.value.size)
     }
+
+    @Test
+    fun `camera is null initially`() = runTest {
+        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+
+        assertNull(viewModel.camera.value)
+    }
+
+    @Test
+    fun `onCameraChanged updates camera`() = runTest {
+        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+
+        viewModel.onCameraChanged(MapCamera(51.76, 19.45, 14.0))
+
+        assertEquals(MapCamera(51.76, 19.45, 14.0), viewModel.camera.value)
+    }
 }
 
 private class FakeVehicleRepository(

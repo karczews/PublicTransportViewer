@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -33,6 +34,7 @@ import com.github.karczews.publictransportviewer.data.model.RouteDisplayData
 import com.github.karczews.publictransportviewer.data.model.RouteStop
 import com.github.karczews.publictransportviewer.data.model.VehiclePosition
 import com.github.karczews.publictransportviewer.ui.home.HomeMapDefaults
+import com.github.karczews.publictransportviewer.ui.home.MapCamera
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import com.github.karczews.publictransportviewer.ui.home.vehicleIconRes
 import com.github.karczews.publictransportviewer.ui.home.vehicleLabel
@@ -59,6 +61,8 @@ import com.tomtom.sdk.map.display.compose.state.rememberMarkerState
 import com.tomtom.sdk.map.display.compose.state.rememberPolylineState
 import com.tomtom.sdk.map.display.image.ImageFactory
 import com.tomtom.sdk.map.display.marker.Label
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 private val LODZ_CENTER = GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longitude = HomeMapDefaults.CENTER_LON)
@@ -72,7 +76,10 @@ fun TomTomHomeScreen(
     val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
     val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
 
-    val initialCameraOptions = InitialCameraOptions.LocationBased(
+    // Start where the previous SDK's map left off (camera handoff), else at the shared defaults.
+    val initialCameraOptions = viewModel.camera.value?.let {
+        InitialCameraOptions.LocationBased(position = GeoPoint(it.lat, it.lon), zoom = it.zoom)
+    } ?: InitialCameraOptions.LocationBased(
         position = LODZ_CENTER,
         zoom = HomeMapDefaults.INITIAL_ZOOM,
     )
@@ -86,6 +93,16 @@ fun TomTomHomeScreen(
         }
     }
     val mapViewState = rememberMapViewState(initialCameraOptions = initialCameraOptions)
+    LaunchedEffect(mapViewState) {
+        snapshotFlow { mapViewState.cameraState.data }
+            .filterNotNull()
+            .filter { it.isStable }
+            .collect {
+                viewModel.onCameraChanged(
+                    MapCamera(it.position.position.latitude, it.position.position.longitude, it.position.zoom),
+                )
+            }
+    }
     val coroutineScope = rememberCoroutineScope()
     val locationProvider = remember { TomTomSdk.locationProvider }
     val context = LocalContext.current
