@@ -5,12 +5,37 @@ data for the city of Lodz (Poland) on an interactive map. It shows live vehicle
 positions (trams and buses), stop departure boards with real-time delays, and
 service alerts.
 
-## Map Renderer
+## Modules
 
-The map is rendered using **TomTom Maps SDK for Android v2.2.1**, specifically the
-Jetpack Compose integration (`map-display-compose-standard`). The SDK is
-initialized in `MainActivity` with an API key provided via the `tomtomApiKey`
-Gradle property (injected into `BuildConfig`).
+```mermaid
+graph LR
+    app[":app"] --> core[":core"]
+    app --> tomtom[":map-tomtom"]
+    tomtom --> core
+    testing[":core-testing"] --> core
+    core -. androidTest .-> testing
+    tomtom -. androidTest .-> testing
+```
+
+| Module | Contents |
+|--------|----------|
+| `:app` | `PublicTransportApp`, `MainActivity`, `AvailableMapSdks.kt` (the map SDKs this build ships) |
+| `:core` | Room, GTFS static/RT pipelines, repositories, worker, `CoreModule` (Koin), view models, Stops/Alerts screens, theme, nav scaffold, `MapSdk` contract, `MapSdkHost` |
+| `:map-tomtom` | `TomTomMapSdk` + `TomTomHomeScreen` (TomTom SDK only) |
+| `:core-testing` | Instrumented-test fakes: `KoinTestRunner`, `TestPublicTransportApp`, `FixtureData`, `FakeMapSdk` |
+
+## Map SDKs
+
+Each map SDK implements `MapSdk` (`id`, `displayName`, `initialize()`, `HomeScreen()`) and owns the
+whole Home tab. `MapSdkHost` (in `:core`) awaits `initialize()` through `MapSdkInitializer` — which
+runs it once, outside the composition, so leaving the tab does not cancel it — and shows a spinner
+or an error in the Home tab meanwhile. Stops and Alerts never wait for a map SDK.
+
+### TomTom
+
+The TomTom renderer (`:map-tomtom`) uses the **TomTom Maps SDK for Android** Jetpack Compose
+integration (`map-display-compose-standard`). `TomTomMapSdk.initialize()` initializes the SDK with
+an API key provided via the `tomtomApiKey` Gradle property (injected into `:map-tomtom`'s `BuildConfig`).
 
 Key TomTom Compose components used:
 
@@ -188,7 +213,7 @@ erDiagram
 
 The app follows **MVVM** with a unidirectional data flow. Dependency injection is
 handled by **Koin** (with the Koin compiler plugin): the graph is defined in
-`di/AppModule.kt`, view models are `@KoinViewModel`, the WorkManager worker is
+`:core`'s `di/CoreModule.kt`, view models are `@KoinViewModel`, the WorkManager worker is
 `@KoinWorker`, and `PublicTransportApp` (the `Application` subclass) starts Koin
 via `startKoin<PublicTransportKoinConfiguration>`.
 
@@ -385,6 +410,7 @@ sequenceDiagram
     participant WM as WorkManager
     participant SDS as GtfsStaticDataSource
     participant Act as MainActivity
+    participant Host as MapSdkHost
     participant SDK as TomTomSdk
 
     OS->>App: onCreate()
@@ -398,10 +424,11 @@ sequenceDiagram
         SDS-->>App: true
     end
     OS->>Act: onCreate()
-    Act->>SDK: TomTomSdk.initialize(apiKey)
-    SDK-->>Act: Ready
-    Act->>Act: sdkInitialized = true
     Act->>Act: Render NavigationSuiteScaffold
+    Act->>Host: Home tab shown
+    Host->>SDK: TomTomMapSdk.initialize() → TomTomSdk.initialize(apiKey)
+    SDK-->>Host: Ready
+    Host->>Host: Render TomTomHomeScreen
 ```
 
 ## UI Layer
@@ -414,7 +441,7 @@ Built entirely with **Jetpack Compose** and **Material 3**.
 
 | Tab | Screen | Icon |
 |-----|--------|------|
-| Home | `HomeScreen` - Full-screen TomTom map with vehicle markers | `ic_home` |
+| Home | `MapSdkHost` → the selected SDK's Home screen (e.g. `TomTomHomeScreen`) - full-screen map with vehicle markers | `ic_home` |
 | Stops | `StopsScreen` - Stop search with departure boards | `ic_bus` |
 | Alerts | `AlertsScreen` - Service disruption cards | `ic_alert` |
 
@@ -499,16 +526,25 @@ stateDiagram-v2
 - **Min SDK:** 32 (Android 12L)
 - **Target/Compile SDK:** 36
 - **ABI filters:** `arm64-v8a`, `x86_64`
-- **TomTom SDK flavor:** `complete` (via `missingDimensionStrategy`)
+- **TomTom SDK flavor:** `complete` (via `missingDimensionStrategy` in `:app` and `:map-tomtom`)
 - **TomTom API key:** Provided via `gradle.properties` as `tomtomApiKey`,
-  injected into `BuildConfig.TOMTOM_API_KEY`
+  injected into `:map-tomtom`'s `BuildConfig.TOMTOM_API_KEY`
 
 ## Project Structure
 
 ```
 app/src/main/java/com/github/karczews/publictransportviewer/
-├── PublicTransportApp.kt              # Application class, dependency wiring
-├── MainActivity.kt                # TomTom SDK init, navigation scaffold
+├── PublicTransportApp.kt          # Application class, starts Koin, schedules GTFS refresh
+├── MainActivity.kt                # setContent { PublicTransportViewerApp(availableMapSdks) }
+└── AvailableMapSdks.kt            # Map SDKs this build ships
+
+map-tomtom/src/main/java/com/github/karczews/publictransportviewer/map/tomtom/
+├── TomTomMapSdk.kt                # MapSdk: TomTom SDK init + Home screen
+└── TomTomHomeScreen.kt            # Map with vehicles, route overlay, location
+
+core/src/main/java/com/github/karczews/publictransportviewer/
+├── di/CoreModule.kt               # Koin graph
+├── map/MapSdk.kt                  # Contract every map SDK module implements
 ├── data/
 │   ├── db/
 │   │   ├── GtfsDatabase.kt        # Room database definition
@@ -538,8 +574,12 @@ app/src/main/java/com/github/karczews/publictransportviewer/
 │   └── worker/
 │       └── GtfsRefreshWorker.kt     # Weekly GTFS static data refresh
 └── ui/
+    ├── PublicTransportViewerApp.kt  # Nav scaffold (Home/Stops/Alerts)
     ├── home/
-    │   ├── HomeScreen.kt            # Map with vehicles, route overlay, location
+    │   ├── MapSdkHost.kt            # Home tab: init gate, then MapSdk.HomeScreen
+    │   ├── MapSdkInitializer.kt     # Runs each MapSdk.initialize() once, outside composition
+    │   ├── HomeMapDefaults.kt       # Shared start camera / recenter zoom
+    │   ├── VehicleFormatting.kt     # Shared vehicle label/title/icon helpers
     │   └── HomeViewModel.kt         # Vehicle polling, route selection
     ├── stops/
     │   ├── StopsScreen.kt           # Search + departure board UI

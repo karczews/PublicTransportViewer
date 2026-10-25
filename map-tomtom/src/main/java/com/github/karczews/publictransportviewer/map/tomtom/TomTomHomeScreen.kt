@@ -1,4 +1,4 @@
-package com.github.karczews.publictransportviewer.ui.home
+package com.github.karczews.publictransportviewer.map.tomtom
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -28,11 +28,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.karczews.publictransportviewer.core.R
+import com.github.karczews.publictransportviewer.core.R as CoreR
 import com.github.karczews.publictransportviewer.data.model.RouteDisplayData
 import com.github.karczews.publictransportviewer.data.model.RouteStop
 import com.github.karczews.publictransportviewer.data.model.VehiclePosition
-import com.github.karczews.publictransportviewer.data.model.VehicleType
+import com.github.karczews.publictransportviewer.ui.home.HomeMapDefaults
+import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
+import com.github.karczews.publictransportviewer.ui.home.vehicleIconRes
+import com.github.karczews.publictransportviewer.ui.home.vehicleLabel
+import com.github.karczews.publictransportviewer.ui.home.vehicleTitle
 import com.tomtom.sdk.init.TomTomSdk
 import com.tomtom.sdk.location.GeoPoint
 import com.tomtom.sdk.map.display.MapLocationInfrastructure
@@ -57,11 +61,10 @@ import com.tomtom.sdk.map.display.image.ImageFactory
 import com.tomtom.sdk.map.display.marker.Label
 import kotlinx.coroutines.launch
 
-private val LODZ_CENTER = GeoPoint(latitude = 51.7592, longitude = 19.4560)
-private const val INITIAL_ZOOM = 13.0
+private val LODZ_CENTER = GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longitude = HomeMapDefaults.CENTER_LON)
 
 @Composable
-fun HomeScreen(
+fun TomTomHomeScreen(
     viewModel: HomeViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -71,7 +74,7 @@ fun HomeScreen(
 
     val initialCameraOptions = InitialCameraOptions.LocationBased(
         position = LODZ_CENTER,
-        zoom = INITIAL_ZOOM,
+        zoom = HomeMapDefaults.INITIAL_ZOOM,
     )
     val mapDisplayInfrastructure = remember {
         MapDisplayInfrastructure(
@@ -145,7 +148,7 @@ fun HomeScreen(
                 if (location != null) {
                     coroutineScope.launch {
                         mapViewState.cameraState.animateCamera(
-                            CameraOptions(position = location.position, zoom = 15.0),
+                            CameraOptions(position = location.position, zoom = HomeMapDefaults.RECENTER_ZOOM),
                         )
                     }
                 }
@@ -157,7 +160,7 @@ fun HomeScreen(
                 .testTag("recenter_button"),
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_my_location),
+                painter = painterResource(CoreR.drawable.ic_my_location),
                 contentDescription = "Recenter to my location",
             )
         }
@@ -181,21 +184,16 @@ private fun VehicleMarker(
             geoPoint = GeoPoint(vehicle.latitude, vehicle.longitude),
         ),
         properties = MarkerProperties(
-            pinImage = ImageFactory.fromResource(
-                when (vehicle.vehicleType) {
-                    VehicleType.TRAM -> R.drawable.ic_tram
-                    VehicleType.BUS -> R.drawable.ic_bus
-                }
-            ),
+            pinImage = ImageFactory.fromResource(vehicleIconRes(vehicle.vehicleType)),
         ) {
             label = Label(
-                text = vehicle.routeShortName ?: vehicle.routeId,
+                text = vehicleLabel(vehicle),
                 textColor = Color.WHITE,
                 textSize = 12.0,
                 outlineColor = Color.BLACK,
                 outlineWidth = 2.0,
             )
-            balloonText = buildBalloonText(vehicle)
+            balloonText = vehicleTitle(vehicle)
         },
         state = markerState,
         onClick = {
@@ -243,7 +241,7 @@ private fun StopMarker(stop: RouteStop, routeColor: Int) {
             geoPoint = GeoPoint(stop.lat, stop.lon),
         ),
         properties = MarkerProperties(
-            pinImage = ImageFactory.fromResource(R.drawable.ic_stop_dot),
+            pinImage = ImageFactory.fromResource(CoreR.drawable.ic_stop_dot),
         ) {
             label = Label(
                 text = stop.stopName,
@@ -259,14 +257,4 @@ private fun StopMarker(stop: RouteStop, routeColor: Int) {
             // no-op for now
         },
     )
-}
-
-private fun buildBalloonText(vehicle: VehiclePosition): String {
-    val typeName = when (vehicle.vehicleType) {
-        VehicleType.TRAM -> "Tram"
-        VehicleType.BUS -> "Bus"
-    }
-    val routeName = vehicle.routeShortName ?: vehicle.routeId
-    val headsign = vehicle.tripHeadsign
-    return if (headsign != null) "$typeName $routeName → $headsign" else "$typeName $routeName"
 }
