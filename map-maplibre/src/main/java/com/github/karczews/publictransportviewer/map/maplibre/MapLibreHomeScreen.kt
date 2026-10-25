@@ -147,7 +147,9 @@ internal fun MapLibreHomeScreen(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .safeDrawingPadding()
-                    .padding(bottom = 48.dp)
+                    // 48dp clears the logo/attribution row; 72dp each side keeps long titles
+                    // (they wrap) out of the recenter button's column (16dp margin + 48dp + gap).
+                    .padding(start = 72.dp, end = 72.dp, bottom = 48.dp)
                     .testTag("vehicle_info_card"),
             ) {
                 Text(vehicleTitle(vehicle), Modifier.padding(12.dp))
