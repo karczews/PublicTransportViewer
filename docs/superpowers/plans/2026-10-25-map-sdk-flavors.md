@@ -39,6 +39,12 @@
   - `all` → `.all`, "PTV Compare"
 - maplibre-compose **0.20.0**. Exactly one runtime, `maplibre-compose-runtime-opengl-android`, `runtimeOnly`, preceded by the comment from spec §11.
 - Style URL `https://styles.maptoolkit.org/summer.json`.
+- **Every maplibre `SymbolLayer` sets `textFont = const(listOf("Noto Sans Regular"))`.** The Maptoolkit glyph server 404s maplibre-compose's default font stack (`Open Sans Regular, Arial Unicode MS Regular`), and labels would silently not render.
+- **Resources across modules use non-transitive R** (AGP default). SDK modules reference `:core` drawables via `import com.github.karczews.publictransportviewer.core.R as CoreR`, and their own drawables via their module `R`.
+- Every module with composables sets `buildFeatures { compose = true }`.
+- maplibre-compose layer styling parameters are typed `Expression<…>`. Wrap literals in `const(…)`, and write interpolate stops as `zoomLevel to const(value)`. The verified API is in scratchpad `maplibre-probe-notes.md` and `Probe.kt.txt`.
+- Screenshot checks run in **portrait and landscape**. For landscape: `adb shell settings put system accelerometer_rotation 0 && adb shell settings put system user_rotation 1`; set `user_rotation 0` to go back.
+- Map composables keep producing frames. If a Compose test times out waiting for idle, use `composeRule.waitUntil(5_000) { …node exists… }` before asserting.
 - Maptoolkit attribution:
   - Logo ≥ `24.dp` tall at bottom-start, tag `maptoolkit_logo`, opens `https://www.maptoolkit.org/`.
   - The attribution button stays visible bottom-end.
@@ -76,7 +82,14 @@ After PR 1 is squash-merged upstream, the user rebases with
 
 ---
 
-### Task 0: Compile probe for maplibre-compose (throwaway)
+### Task 0: Compile probe for maplibre-compose (throwaway). DONE, PASSED
+
+**Result (2026-10-25):**
+- maplibre-compose 0.20.0 + the OpenGL runtime compiled and assembled under Kotlin 2.4.0, AGP 9.4.1 and compileSdk 37 on the first try.
+- The probe needed `alias(libs.plugins.android.library) apply false` in the root build file, which Task 1 adds.
+- Compose resolves to 1.12.1 on both classpaths, so there's no drift. maplibre-compose pulls in no OkHttp.
+- The verified API is in scratchpad `maplibre-probe-notes.md`, with a full compiling sample in `Probe.kt.txt`.
+- The probe worktree and branch are deleted. The steps below are kept for the record.
 
 This task answers one question: does maplibre-compose 0.20.0 compile and package here (Kotlin 2.4.0, AGP 9.4.1, compileSdk 37)? Nothing from it is kept.
 
@@ -139,6 +152,7 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
   - Remove the `ksp` and `room` plugins, the `room {}` block and every dependency no longer referenced by `:app` sources (room, ksp, okhttp, gtfs-rt-bindings).
   - Keep compose, activity-compose, koin, work and TomTom.
   - Add `lint { checkDependencies = true }` inside `android {}`.
+  - **Koin fallback:** if `:app:compileDebugKotlin` fails in the Koin safety pass with types it can't resolve (e.g. `OkHttpClient`, `GtfsDatabase`, coming from `:core`'s cross-module hints), switch those `:core` dependencies (okhttp, room-runtime) from `implementation` to `api`. Note it in the commit message.
 - [ ] **Step 4: Fix the `R` imports** in `MainActivity.kt` and `HomeScreen.kt` (`com.github.karczews.publictransportviewer.core.R`).
 - [ ] **Step 5: Change the CI upload path.** In `.github/workflows/run-tests.yml`, `path: app/build/reports/tests/` → `path: '*/build/reports/tests/'`.
 - [ ] **Step 6: Verify.** Run `./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug -PtomtomApiKey=""`.
@@ -177,7 +191,7 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
     - On `Ready`: `key(sdk.id) { sdk.HomeScreen(koinViewModel<HomeViewModel>(), Modifier.fillMaxSize()) }`.
     - Its initial state is `Ready` when `initializer.isReady(sdk.id)`, so there's no spinner flash. In this task the SDK is always `mapSdks.first()`.
   - `@Composable fun PublicTransportViewerApp(mapSdks: List<MapSdk>)` with `require(mapSdks.isNotEmpty())`.
-    - Builds `remember { MapSdkInitializer(scope = <rememberCoroutineScope()>, initialize = { it.initialize(appContext) }) }`.
+    - Hoists `val scope = rememberCoroutineScope()` and `val appContext = LocalContext.current.applicationContext`, then builds `remember { MapSdkInitializer(scope, initialize = { it.initialize(appContext) }) }`.
     - The Home destination renders `MapSdkHost`.
   - `FakeMapSdk(id: String = "fake", displayName: String = "Fake", private val onInitialize: suspend () -> Unit = {}) : MapSdk`. Its `HomeScreen` is `Box(modifier.testTag("fake_map_$id"))`.
   - `TomTomMapSdk(apiKey: String) : MapSdk` in `:app`, `id = "tomtom"`, `displayName = "TomTom"`:
@@ -193,9 +207,14 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 - [ ] **Step 3: Implement** `MapSdk`, `MapSdkInitState` and `MapSdkInitializer` per Interfaces. Use a `mutableMapOf<String, Deferred<Result<Unit>>>` guarded by main-thread use; callers are composables.
 - [ ] **Step 4: Confirm it passes** with the same command. Expected: 4 tests PASS.
 - [ ] **Step 5: Create `:core-testing`.**
-  - Plugins `android.library` + `kotlin.compose`. Add `include(":core-testing")`.
-  - Dependencies: `implementation(project(":core"))`, koin bom/android/core, the Compose BOM + ui, and a new catalog entry `androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.7.0" }`. `KoinTestRunner` extends `AndroidJUnitRunner`.
+  - Plugins `android.library` + `kotlin.compose`, `buildFeatures { compose = true }`. Add `include(":core-testing")`.
+  - Dependencies:
+    - `implementation(project(":core"))`.
+    - `implementation(platform(libs.koin.bom))` + `libs.koin.android`. Koin core and viewmodel come transitively; there's no `koin-core` alias.
+    - `implementation(platform(libs.androidx.compose.bom))` + `libs.androidx.compose.material3`. Material3 brings foundation, which `Box` needs; `ui` alone doesn't.
+    - The new catalog entries `testRunner = "1.7.0"` under `[versions]` and `androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }`. `KoinTestRunner` extends `AndroidJUnitRunner`.
   - `git mv` `KoinTestRunner.kt` and `TestPublicTransportApp.kt` into it unchanged, and write `FakeMapSdk`.
+  - Wire `:core` now: set `testInstrumentationRunner`, add `androidTestImplementation(project(":core-testing"))`, and run `./gradlew :core:assembleDebugAndroidTest`. Expected `BUILD SUCCESSFUL`: the `:core-testing` ↔ `:core` loop works (spec §16.5). If Gradle reports a circular dependency, STOP and report.
 - [ ] **Step 6: Move `PublicTransportViewerApp` + `AppDestinations`** into `core/.../ui/PublicTransportViewerApp.kt` with the new signature. Write `MapSdkHost`.
 - [ ] **Step 7: Update `MainActivity`.**
   - Its `onCreate` becomes `enableEdgeToEdge(); setContent { PublicTransportViewerTheme { PublicTransportViewerApp(mapSdks = listOf(TomTomMapSdk(BuildConfig.TOMTOM_API_KEY))) } }`.
@@ -207,7 +226,7 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
     - `homeTab_showsFakeMap`: `onNodeWithTag("fake_map_fake").assertIsDisplayed()`
     - `homeTab_showsSpinnerWhileInitializing`: `FakeMapSdk(onInitialize = { awaitCancellation() })` → `map_sdk_loading` displayed, `fake_map_fake` `assertDoesNotExist()`
     - `homeTab_showsErrorWhenInitFails`: `FakeMapSdk(onInitialize = { error("boom") })` → `onNodeWithText("Couldn't start Fake: boom").assertIsDisplayed()`
-  - `:core` gets `testInstrumentationRunner` and `androidTestImplementation(project(":core-testing"))`, compose ui-test-junit4, androidx-junit, `debugImplementation(libs.androidx.compose.ui.test.manifest)`.
+  - `:core` additionally gets `androidTestImplementation` compose ui-test-junit4 (with the Compose BOM platform) and androidx-junit, plus `debugImplementation(libs.androidx.compose.ui.test.manifest)`.
   - Remove the now-empty `app/src/androidTest` tree, plus `:app`'s `testInstrumentationRunner` line and androidTest dependencies.
 - [ ] **Step 9: Verify.**
   - Run `./gradlew :core:assembleDebugAndroidTest testDebugUnitTest assembleDebug -PtomtomApiKey=""`. Expected: `BUILD SUCCESSFUL`. This also proves Gradle accepts the `:core-testing` ↔ `:core` androidTest dependency (spec §16.5).
@@ -254,7 +273,8 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
   - Plugins `android.library` + `kotlin.compose`. Add `include(":map-tomtom")`.
   - Move the `tomtomApiKey` lookup and `buildConfigField("String", "TOMTOM_API_KEY", …)` from `:app`, and set `buildFeatures { compose = true; buildConfig = true }`.
   - `missingDimensionStrategy` and `testInstrumentationRunner` in `defaultConfig`.
-  - Dependencies: `implementation(project(":core"))`, Compose BOM + material3 + ui, activity-compose, core-ktx, lifecycle-runtime-compose (`collectAsStateWithLifecycle`), and both TomTom deps with the exclusion.
+  - Dependencies: `implementation(project(":core"))`, Compose BOM + material3 + ui, activity-compose, core-ktx, and both TomTom deps with the exclusion. `collectAsStateWithLifecycle` comes through compose `ui`; there's no alias to add.
+  - `TomTomHomeScreen` references `:core` drawables as `CoreR.drawable.*`.
   - androidTest dependencies: `:core-testing`, compose ui-test-junit4, androidx-junit, and `debugImplementation` ui-test-manifest.
 - [ ] **Step 6: `git mv` the two TomTom files.**
   - In `TomTomHomeScreen`, replace the `LODZ_CENTER`/`INITIAL_ZOOM`/`15.0` constants with `HomeMapDefaults`, and `buildBalloonText`/label/icon logic with `vehicleTitle`/`vehicleLabel`/`vehicleIconRes`.
@@ -274,7 +294,15 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
     - Build Commands: single-test examples target `:core` (spec §14).
     - Note that the API key is injected into `:map-tomtom`'s `BuildConfig`.
     - Architecture: add a module list and the `MapSdk` contract. "Map Rendering" becomes the TomTom section, pointing at `:map-tomtom`.
-  - `docs/ARCHITECTURE.md`: add a mermaid module graph (`app → core, map-tomtom`; `map-tomtom → core`; `core-testing → core`). Rename "Map Renderer" to "Map SDKs" with a TomTom subsection.
+    - Fix stale lines:
+      - "Single-module Android app (`app/`)" and `di/AppModule.kt` → `:core` / `CoreModule`.
+      - SDK init "in `MainActivity`" → `TomTomMapSdk.initialize()` via `MapSdkHost`.
+      - Room schemas `app/schemas/` → `core/schemas/`.
+  - `docs/ARCHITECTURE.md`:
+    - Add a mermaid module graph (`app → core, map-tomtom`; `map-tomtom → core`; `core-testing → core`).
+    - Rename "Map Renderer" to "Map SDKs" with a TomTom subsection.
+    - Fix stale `AppModule` mentions, the `MainActivity` init-sequence description and the file-tree listing to match the new modules.
+    - Find all of them with `grep -n "AppModule\|MainActivity\|app/src\|app/schemas\|Single-module" AGENTS.md docs/ARCHITECTURE.md`.
 - [ ] **Step 11: Verify all of PR 1.**
   - Run `./gradlew assembleDebug testDebugUnitTest lintDebug -PtomtomApiKey=""`. Expected: `BUILD SUCCESSFUL`, with 53 + 4 + 5 = **62** unit tests in `core/build/test-results`.
   - With a device, run `./gradlew :core:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest`. Expected: PASS.
@@ -311,8 +339,8 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 - [ ] **Step 1: Write the failing `MapLibreHomeScreenTest.homeScreen_showsMaptoolkitLogo`.**
   `createComposeRule()`, then `setContent { MapLibreMapSdk().HomeScreen(HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository()), Modifier.fillMaxSize()) }`, then `onNodeWithTag("maptoolkit_logo").assertIsDisplayed()`.
 - [ ] **Step 2: Create `:map-maplibre`.**
-  - Plugins `android.library` + `kotlin.compose`; `testInstrumentationRunner`.
-  - Dependencies: `:core`, Compose BOM + material3 + ui, lifecycle-runtime-compose, `libs.maplibre.compose`, `libs.maplibre.compose.location`, and `runtimeOnly(libs.maplibre.compose.runtime.opengl)` **preceded verbatim by the comment block in spec §11**.
+  - Plugins `android.library` + `kotlin.compose`; `buildFeatures { compose = true }`; `testInstrumentationRunner`.
+  - Dependencies: `:core`, Compose BOM + material3 + ui, `libs.maplibre.compose`, `libs.maplibre.compose.location`, and `runtimeOnly(libs.maplibre.compose.runtime.opengl)` **preceded verbatim by the comment block in spec §11**.
   - Test dependencies: `testImplementation(libs.junit)`, the same androidTest set as `:map-tomtom`.
   - Add `include(":map-maplibre")`.
 - [ ] **Step 3: Confirm the test fails.** Run `./gradlew :map-maplibre:assembleDebugAndroidTest`. Expected: compilation FAIL (`MapLibreMapSdk` unresolved).
@@ -336,7 +364,7 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 - [ ] **Step 10: Check it on a device.**
   - Run `./gradlew installMaplibreDebug` and launch "PTV MapLibre".
   - Expected: the Maptoolkit map is centered on Łódź, the logo is at bottom-left, and the attribution button at bottom-right expands to `© Maptoolkit © OpenStreetMap`.
-  - Screenshot it to the scratchpad and inspect.
+  - Screenshot it to the scratchpad in portrait **and landscape** and inspect.
   - If there's no attribution text, add the fallback from spec §11: draw the line ourselves, bottom-end, with both links.
 - [ ] **Step 11: Update the docs.**
   - `AGENTS.md`: install commands `installTomtomDebug`/`installMaplibreDebug`, lint commands, and a MapLibre section (style, attribution rule, render-backend comment location).
@@ -372,16 +400,18 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 - [ ] **Step 2: Confirm it fails.** Run `./gradlew :map-maplibre:testDebugUnitTest`. Expected: compilation FAIL.
 - [ ] **Step 3: Implement `MapLibreFeatures.kt`.**
 - [ ] **Step 4: Confirm it passes** with the same command. Expected: 6 PASS.
-- [ ] **Step 5: Add the layers** to the `rememberMapState { … }` content block, bottom to top:
+- [ ] **Step 5: Add the layers** to the `rememberMapState(…, content = { … })` block, bottom to top.
+  All literals are `const(…)`, every `SymbolLayer` sets `textFont = const(listOf("Noto Sans Regular"))`, and drawables are `CoreR.drawable.*`. Layer ids: `route-casing`, `route-line`, `route-stops`, `vehicles`.
   1. `routeLine(route)` (when non-null) as a `rememberGeoJsonSource(GeoJsonData.Features(it))` source with two `LineLayer`s:
-     - Casing: color `Color(0x64000000)`, width `interpolate(linear(), zoom(), 10 to 10.dp, 14 to 14.dp, 18 to 18.dp)`. That's the line widths + 2dp each side, from TomTom's `outlineWidths = WidthByZoom(2.0)`.
-     - Line: color `Color(route.routeColor)`, width `interpolate(linear(), zoom(), 10 to 6.dp, 14 to 10.dp, 18 to 14.dp)`. TomTom's `WidthByZoom(width, zoom)` pairs are (6,10), (10,14), (14,18).
-  2. `routeStopFeatures(route)` as a `SymbolLayer`:
-     - `iconImage = image(painterResource(R.drawable.ic_stop_dot))`, `textField` = feature `name`.
-     - `textColor = Color.DarkGray`, `textHaloColor = Color.White`, `textHaloWidth = 1.dp`, `textSize = 10.sp`, text below the icon.
-  3. `vehicleFeatures(vehicles)` as a `SymbolLayer`:
-     - `iconImage` chosen by feature `type` (`"TRAM"` → `ic_tram`, else `ic_bus`), `textField` = feature `label`.
-     - `textColor = Color.White`, `textHaloColor = Color.Black`, `textHaloWidth = 2.dp`, `textSize = 12.sp`, icon and text overlap allowed.
+     - `route-casing`: `color = const(Color(0x64000000))`, `width = interpolate(linear(), zoom(), 10 to const(10.dp), 14 to const(14.dp), 18 to const(18.dp))`. That's the line widths + 2dp each side, from TomTom's `outlineWidths = WidthByZoom(2.0)`.
+     - `route-line`: `color = const(Color(route.routeColor))`, `width = interpolate(linear(), zoom(), 10 to const(6.dp), 14 to const(10.dp), 18 to const(14.dp))`. TomTom's `WidthByZoom(width, zoom)` pairs are (6,10), (10,14), (14,18).
+  2. `route-stops` `SymbolLayer` over `routeStopFeatures(route)`:
+     - `iconImage = image(painterResource(CoreR.drawable.ic_stop_dot))`, `textField = format(span(feature["name"].asString()))`.
+     - `textColor = const(Color.DarkGray)`, `textHaloColor = const(Color.White)`, `textHaloWidth = const(1.dp)`, `textSize = const(10.sp)`, `textAnchor = const(SymbolAnchor.Top)` with a small downward `textOffset`.
+     - `onClick = { ClickResult.Consume }`, so a stop tap doesn't fall through to `onUnhandled` and clear the selection. That matches TomTom's no-op stop click.
+  3. `vehicles` `SymbolLayer` over `vehicleFeatures(vehicles)`:
+     - `iconImage = switch(feature["type"].asString(), case("TRAM", image(painterResource(CoreR.drawable.ic_tram))), fallback = image(painterResource(CoreR.drawable.ic_bus)))`, `textField = format(span(feature["label"].asString()))`.
+     - `textColor = const(Color.White)`, `textHaloColor = const(Color.Black)`, `textHaloWidth = const(2.dp)`, `textSize = const(12.sp)`, `iconAllowOverlap = const(true)`, `textAllowOverlap = const(true)`.
      - `onClick = { features -> features.firstOrNull()?.let(::clickedVehicleId)?.let { id -> vehicles.firstOrNull { it.vehicleId == id } }?.let(viewModel::onVehicleSelected); ClickResult.Consume }`
   - `interactions = MapInteractions { callbacks { click { onUnhandled { viewModel.clearSelection(); ClickResult.Consume } } } }`.
   - Info card, outside `MaplibreMap` in the root `Box`: `selectedVehicle(vehicles, selectedId)?.let { ElevatedCard(Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(bottom = 48.dp).testTag("vehicle_info_card")) { Text(vehicleTitle(it), Modifier.padding(12.dp)) } }`. The 48dp keeps it clear of the logo and attribution.
@@ -391,10 +421,10 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 - [ ] **Step 7: Verify.**
   - Run `./gradlew :map-maplibre:testDebugUnitTest :map-maplibre:connectedDebugAndroidTest`. Expected: PASS.
   - Run `./gradlew installMaplibreDebug`. Expected:
-    - Live vehicles render with labels.
-    - Tapping one shows the route line, stops and the info card.
-    - Tapping empty map clears them.
-  - Screenshot and inspect.
+    - Live vehicles render with **visible route-number labels**.
+    - Tapping one shows the route line, stops with names and the info card.
+    - Tapping a stop keeps the selection; tapping empty map clears it.
+  - Screenshot in portrait and landscape and inspect.
 - [ ] **Step 8: Commit** with `git add -A && git commit -m "feat(maplibre): render vehicles, selected route and stops"`.
 
 ---
@@ -415,10 +445,10 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
   - On click: if not granted, `locationState.requestPermission()`. Otherwise `locationState.lastLocation?.let { scope.launch { mapState.animateCamera(CameraUpdate(center = it.position, zoom = HomeMapDefaults.RECENTER_ZOOM)) } }`.
 - [ ] **Step 3: Confirm it passes** with `./gradlew :map-maplibre:connectedDebugAndroidTest`. Expected: all 3 tests PASS.
 - [ ] **Step 4: Check permissions manually** with `installMaplibreDebug`:
-  1. Revoke first with `adb shell pm revoke com.github.karczews.publictransportviewer.maplibre android.permission.ACCESS_FINE_LOCATION`. Tap recenter: the system dialog appears.
+  1. Revoke both permissions first, because maplibre treats a coarse-only grant as `Granted`: `adb shell pm revoke com.github.karczews.publictransportviewer.maplibre android.permission.ACCESS_FINE_LOCATION && adb shell pm revoke com.github.karczews.publictransportviewer.maplibre android.permission.ACCESS_COARSE_LOCATION`. Tap recenter: the system dialog appears.
   2. Deny. Tap again: no crash.
   3. Grant. The blue dot shows (set an emulator location via `adb emu geo fix 19.4560 51.7592`), and recenter animates to zoom 15.
-  4. Screenshot and inspect. The recenter button must not overlap the attribution button.
+  4. Screenshot in portrait and landscape and inspect. The recenter button must not overlap the attribution button or the Maptoolkit logo.
 - [ ] **Step 5: Verify PR 2.**
   - Run `./gradlew assembleDebug testDebugUnitTest lintTomtomDebug lintMaplibreDebug -PtomtomApiKey=""`. Expected: `BUILD SUCCESSFUL`.
   - Record the Compose versions resolved on `maplibreDebugRuntimeClasspath` vs `tomtomDebugRuntimeClasspath` (spec §16.2) in the scratchpad `pr2-notes.md` for the PR description.
@@ -519,5 +549,5 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
   1. The toggle shows `TomTom | MapLibre`.
   2. Pan and zoom on TomTom, select a vehicle, then switch to MapLibre. Expected: the same area and zoom (±0.5), and the same vehicle selected with its route shown.
   3. Kill the app (`adb shell am force-stop com.github.karczews.publictransportviewer.all`) and relaunch. Expected: MapLibre is still selected.
-  4. Screenshot both SDKs and inspect. Expected: the toggle doesn't overlap the TomTom or MapLibre controls.
+  4. Screenshot both SDKs in portrait and landscape and inspect. Expected: the toggle doesn't overlap the TomTom or MapLibre controls.
 - [ ] **Step 7: Commit** with `git add -A && git commit -m "feat: add all flavor bundling every map SDK"`.
