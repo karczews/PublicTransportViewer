@@ -16,13 +16,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - run: ./gradlew lintDebug -PtomtomApiKey=""
+      - run: ./gradlew lintTomtomDebug lintMaplibreDebug -PtomtomApiKey=""
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: lint-results
           path: |
-            app/build/reports/lint-results-debug.html
-            app/build/reports/lint-results-debug.txt
+            app/build/reports/lint-results-*Debug.html
+            app/build/reports/lint-results-*Debug.txt
           retention-days: 7
