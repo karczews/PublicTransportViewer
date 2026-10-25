@@ -6,8 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "gtfs_routes")
 data class RouteEntity(
-    @PrimaryKey
-    @ColumnInfo(name = "route_id") val routeId: String,
+    @PrimaryKey @ColumnInfo(name = "route_id") val routeId: String,
     @ColumnInfo(name = "agency_id") val agencyId: String?,
     @ColumnInfo(name = "route_short_name") val routeShortName: String,
     @ColumnInfo(name = "route_long_name") val routeLongName: String,

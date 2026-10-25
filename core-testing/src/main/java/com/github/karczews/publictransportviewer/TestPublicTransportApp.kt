@@ -27,9 +27,9 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Test [Application] installed by [KoinTestRunner]. Starts Koin with [testModule] only —
- * fake repositories plus the real view models — so instrumented UI tests run against fixed
- * data with no database, network, or WorkManager involvement.
+ * Test [Application] installed by [KoinTestRunner]. Starts Koin with [testModule] only — fake repositories plus the
+ * real view models — so instrumented UI tests run against fixed data with no database, network, or WorkManager
+ * involvement.
  */
 class TestPublicTransportApp : Application() {
     override fun onCreate() {
@@ -53,82 +53,99 @@ val testModule = module {
 
 object FixtureData {
 
-    val tram10 = VehiclePosition(
-        vehicleId = "tram-v1",
-        routeId = "10",
-        tripId = "trip-10-1",
-        label = "10",
-        latitude = 51.7592,
-        longitude = 19.4560,
-        bearing = 90f,
-        speed = 20f,
-        timestamp = 1700000000L,
-        vehicleType = VehicleType.TRAM,
-        currentStatus = VehicleStatus.IN_TRANSIT_TO,
-        routeShortName = "10",
-        tripHeadsign = "Chocianowice IKEA",
-        routeColor = "CE1124",
-    )
+    val tram10 =
+        VehiclePosition(
+            vehicleId = "tram-v1",
+            routeId = "10",
+            tripId = "trip-10-1",
+            label = "10",
+            latitude = 51.7592,
+            longitude = 19.4560,
+            bearing = 90f,
+            speed = 20f,
+            timestamp = 1700000000L,
+            vehicleType = VehicleType.TRAM,
+            currentStatus = VehicleStatus.IN_TRANSIT_TO,
+            routeShortName = "10",
+            tripHeadsign = "Chocianowice IKEA",
+            routeColor = "CE1124",
+        )
 
-    val bus50 = VehiclePosition(
-        vehicleId = "bus-v2",
-        routeId = "50",
-        tripId = "trip-50-1",
-        label = "50",
-        latitude = 51.7610,
-        longitude = 19.4580,
-        bearing = 180f,
-        speed = 15f,
-        timestamp = 1700000000L,
-        vehicleType = VehicleType.BUS,
-        currentStatus = VehicleStatus.IN_TRANSIT_TO,
-        routeShortName = "50",
-        tripHeadsign = "Retkinia",
-        routeColor = "0070BB",
-    )
+    val bus50 =
+        VehiclePosition(
+            vehicleId = "bus-v2",
+            routeId = "50",
+            tripId = "trip-50-1",
+            label = "50",
+            latitude = 51.7610,
+            longitude = 19.4580,
+            bearing = 180f,
+            speed = 15f,
+            timestamp = 1700000000L,
+            vehicleType = VehicleType.BUS,
+            currentStatus = VehicleStatus.IN_TRANSIT_TO,
+            routeShortName = "50",
+            tripHeadsign = "Retkinia",
+            routeColor = "0070BB",
+        )
 
-    val routeForTram10 = RouteDisplayData(
-        routeId = "10",
-        routeShortName = "10",
-        routeColor = 0xFFCE1124.toInt(),
-        polylinePoints = listOf(
-            LatLon(51.7550, 19.4500),
-            LatLon(51.7592, 19.4560),
-            LatLon(51.7620, 19.4600),
-        ),
-        stops = listOf(
-            RouteStop("s1", "Piotrkowska Centrum", 51.7550, 19.4500),
-            RouteStop("s2", "Plac Wolności", 51.7592, 19.4560),
-            RouteStop("s3", "Legionów", 51.7620, 19.4600),
-        ),
-    )
+    val routeForTram10 =
+        RouteDisplayData(
+            routeId = "10",
+            routeShortName = "10",
+            routeColor = 0xFFCE1124.toInt(),
+            polylinePoints =
+                listOf(
+                    LatLon(51.7550, 19.4500),
+                    LatLon(51.7592, 19.4560),
+                    LatLon(51.7620, 19.4600),
+                ),
+            stops =
+                listOf(
+                    RouteStop("s1", "Piotrkowska Centrum", 51.7550, 19.4500),
+                    RouteStop("s2", "Plac Wolności", 51.7592, 19.4560),
+                    RouteStop("s3", "Legionów", 51.7620, 19.4600),
+                ),
+        )
 
-    val stops = listOf(
-        StopEntity("s1", "Piotrkowska Centrum", 51.7550, 19.4500, "1001", 0, null),
-        StopEntity("s2", "Plac Wolności", 51.7592, 19.4560, "1002", 0, null),
-        StopEntity("s3", "Politechnika", 51.7500, 19.4450, "1003", 0, null),
-        StopEntity("s4", "Piłsudskiego", 51.7530, 19.4480, "1004", 0, null),
-    )
+    val stops =
+        listOf(
+            StopEntity("s1", "Piotrkowska Centrum", 51.7550, 19.4500, "1001", 0, null),
+            StopEntity("s2", "Plac Wolności", 51.7592, 19.4560, "1002", 0, null),
+            StopEntity("s3", "Politechnika", 51.7500, 19.4450, "1003", 0, null),
+            StopEntity("s4", "Piłsudskiego", 51.7530, 19.4480, "1004", 0, null),
+        )
 
-    val departuresForS1 = listOf(
-        StopDeparture("t1", "10", "10", "Chocianowice IKEA", 45000, 120, "CE1124", VehicleType.TRAM),
-        StopDeparture("t2", "50", "50", "Retkinia", 45300, null, "0070BB", VehicleType.BUS),
-        StopDeparture("t3", "10", "10", "Helenówek", 45600, -60, "CE1124", VehicleType.TRAM),
-    )
+    val departuresForS1 =
+        listOf(
+            StopDeparture(
+                "t1",
+                "10",
+                "10",
+                "Chocianowice IKEA",
+                45000,
+                120,
+                "CE1124",
+                VehicleType.TRAM,
+            ),
+            StopDeparture("t2", "50", "50", "Retkinia", 45300, null, "0070BB", VehicleType.BUS),
+            StopDeparture("t3", "10", "10", "Helenówek", 45600, -60, "CE1124", VehicleType.TRAM),
+        )
 
-    val alerts = listOf(
-        ServiceAlert(
-            alertId = "alert-1",
-            headerText = "Tram 10 detour on Piotrkowska",
-            descriptionText = "Due to roadworks, tram 10 is rerouted via Kilińskiego.",
-            cause = AlertCause.CONSTRUCTION,
-            effect = AlertEffect.DETOUR,
-            activePeriods = emptyList(),
-            affectedRouteIds = listOf("10"),
-            affectedRouteShortNames = listOf("10"),
-            affectedStopIds = listOf("s1"),
-        ),
-    )
+    val alerts =
+        listOf(
+            ServiceAlert(
+                alertId = "alert-1",
+                headerText = "Tram 10 detour on Piotrkowska",
+                descriptionText = "Due to roadworks, tram 10 is rerouted via Kilińskiego.",
+                cause = AlertCause.CONSTRUCTION,
+                effect = AlertEffect.DETOUR,
+                activePeriods = emptyList(),
+                affectedRouteIds = listOf("10"),
+                affectedRouteShortNames = listOf("10"),
+                affectedStopIds = listOf("s1"),
+            ),
+        )
 }
 
 class FixedVehicleRepository : VehicleRepository {
@@ -138,6 +155,7 @@ class FixedVehicleRepository : VehicleRepository {
 
 class FixedRouteDisplayRepository : RouteDisplayRepository {
     private val routes = mapOf("trip-10-1" to FixtureData.routeForTram10)
+
     override suspend fun loadRouteForTrip(tripId: String) = routes[tripId]
 }
 

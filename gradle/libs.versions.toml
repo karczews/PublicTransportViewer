@@ -19,6 +19,9 @@ koinCompiler = "1.2.1"
 tomtomSdk = "2.6.3"
 maplibreCompose = "0.20.0"
 testRunner = "1.7.0"
+spotless = "8.10.4"
+detekt = "2.0.0-alpha.6"
+composeRulesDetekt = "0.6.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -57,6 +60,7 @@ maplibre-compose = { group = "org.maplibre.compose", name = "maplibre-compose", 
 maplibre-compose-location = { group = "org.maplibre.compose", name = "location", version.ref = "maplibreCompose" }
 maplibre-compose-runtime-opengl = { group = "org.maplibre.compose", name = "maplibre-compose-runtime-opengl-android", version.ref = "maplibreCompose" }
 maplibre-compose-runtime-vulkan = { group = "org.maplibre.compose", name = "maplibre-compose-runtime-vulkan-android", version.ref = "maplibreCompose" }
+detekt-compose-rules = { group = "io.nlopez.compose.rules", name = "detekt", version.ref = "composeRulesDetekt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -65,4 +69,6 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koinCompiler" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
 

@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -22,6 +24,25 @@ android {
     }
 }
 
+spotless {
+    // Spotless cannot infer Android source sets, so the target is set explicitly.
+    kotlin {
+        target("src/**/*.kt")
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    kotlinGradle {
+        target("*.gradle.kts")
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
+    }
+}
+
+detekt {
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+}
+
 dependencies {
     implementation(project(":core"))
     implementation(platform(libs.androidx.compose.bom))
@@ -33,7 +54,8 @@ dependencies {
 
     // MapLibre render backend. maplibre-compose needs exactly ONE native runtime on the classpath:
     //   - OpenGL (default): widest device/emulator support  -> libs.maplibre.compose.runtime.opengl
-    //   - Vulkan:           replace the line below with      -> libs.maplibre.compose.runtime.vulkan
+    //   - Vulkan:           replace the line below with      ->
+    // libs.maplibre.compose.runtime.vulkan
     // Never add both. The runtime must match the maplibre-compose version; both use the
     // `maplibreCompose` version ref in gradle/libs.versions.toml, so bump them together.
     runtimeOnly(libs.maplibre.compose.runtime.opengl)
@@ -45,4 +67,5 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    detektPlugins(libs.detekt.compose.rules)
 }

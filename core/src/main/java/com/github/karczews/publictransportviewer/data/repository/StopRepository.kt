@@ -9,13 +9,14 @@ import com.github.karczews.publictransportviewer.data.model.StopDeparture
 import com.github.karczews.publictransportviewer.data.model.TripUpdate
 import com.github.karczews.publictransportviewer.data.model.VehicleType
 import com.github.karczews.publictransportviewer.data.source.TripUpdateDataSource
+import java.util.Calendar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.util.Calendar
 
 interface StopRepository {
     suspend fun searchStops(query: String): List<StopEntity>
+
     fun observeDeparturesForStop(stopId: String): Flow<List<StopDeparture>>
 }
 
@@ -44,11 +45,12 @@ class DefaultStopRepository(
         }
     }
 
-    private suspend fun fetchTripUpdatesOrCached(): List<TripUpdate> = try {
-        tripUpdateDataSource.getTripUpdates().also { lastTripUpdates = it }
-    } catch (_: Exception) {
-        lastTripUpdates
-    }
+    private suspend fun fetchTripUpdatesOrCached(): List<TripUpdate> =
+        try {
+            tripUpdateDataSource.getTripUpdates().also { lastTripUpdates = it }
+        } catch (_: Exception) {
+            lastTripUpdates
+        }
 
     private suspend fun buildDepartures(
         stopId: String,
@@ -72,9 +74,10 @@ class DefaultStopRepository(
         val routes = routeIds.mapNotNull { id -> routeDao.getRouteById(id)?.let { id to it } }.toMap()
 
         val delayByTripId = tripUpdates.associate { update ->
-            val delay = update.stopTimeUpdates
-                .firstOrNull { it.stopId == stopId }
-                ?.let { it.departureDelaySeconds ?: it.arrivalDelaySeconds }
+            val delay =
+                update.stopTimeUpdates
+                    .firstOrNull { it.stopId == stopId }
+                    ?.let { it.departureDelaySeconds ?: it.arrivalDelaySeconds }
             update.tripId to delay
         }
 
@@ -90,7 +93,7 @@ class DefaultStopRepository(
                     scheduledDepartureSecondsOfDay = depSeconds,
                     delaySeconds = delayByTripId[trip.tripId],
                     routeColor = route.routeColor,
-                    vehicleType = if (route.routeType == 0) VehicleType.TRAM else VehicleType.BUS,
+                    vehicleType = if (route.routeType == TRAM_ROUTE_TYPE) VehicleType.TRAM else VehicleType.BUS,
                 )
             }
             .sortedBy { it.scheduledDepartureSecondsOfDay + (it.delaySeconds ?: 0) }
@@ -99,8 +102,8 @@ class DefaultStopRepository(
 
     private fun currentSecondsOfDay(): Int {
         val cal = clock()
-        return cal.get(Calendar.HOUR_OF_DAY) * 3600 +
-            cal.get(Calendar.MINUTE) * 60 +
+        return cal.get(Calendar.HOUR_OF_DAY) * SECONDS_PER_HOUR +
+            cal.get(Calendar.MINUTE) * SECONDS_PER_MINUTE +
             cal.get(Calendar.SECOND)
     }
 
@@ -108,14 +111,18 @@ class DefaultStopRepository(
         private const val POLL_INTERVAL_MS = 15_000L
         private const val WINDOW_SECONDS = 60 * 60
         private const val MAX_DEPARTURES = 30
+        private const val SECONDS_PER_HOUR = 3600
+        private const val SECONDS_PER_MINUTE = 60
+        private const val TRAM_ROUTE_TYPE = 0
+        private const val GTFS_TIME_PART_COUNT = 3
 
         fun parseGtfsTime(time: String): Int? {
             val parts = time.split(":")
-            if (parts.size != 3) return null
+            if (parts.size != GTFS_TIME_PART_COUNT) return null
             val h = parts[0].toIntOrNull() ?: return null
             val m = parts[1].toIntOrNull() ?: return null
             val s = parts[2].toIntOrNull() ?: return null
-            return h * 3600 + m * 60 + s
+            return h * SECONDS_PER_HOUR + m * SECONDS_PER_MINUTE + s
         }
     }
 }

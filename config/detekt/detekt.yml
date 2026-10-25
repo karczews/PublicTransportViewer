@@ -1,0 +1,99 @@
+# Shared detekt configuration for all modules.
+# Applied on top of detekt's built-in defaults
+# (each module sets `buildUponDefaultConfig = true`).
+# Formatting is owned by ktfmt via Spotless; detekt owns correctness and Compose usage.
+
+complexity:
+  TooManyFunctions:
+    active: true
+    # Koin DI modules group one @Single provider per dependency by design, and test
+    # classes naturally hold one function per case.
+    excludes: ['**/di/**', '**/test/**', '**/androidTest/**']
+
+empty-blocks:
+  EmptyFunctionBlock:
+    active: true
+    # Test fakes legitimately no-op the DAO methods they don't exercise; keep
+    # the rule strict for production code.
+    excludes: ['**/test/**', '**/androidTest/**']
+
+naming:
+  FunctionNaming:
+    active: true
+    # Compose screens/components are PascalCase by convention; precise composable
+    # naming is enforced by compose-rules ComposableNaming instead.
+    functionPattern: '[a-zA-Z][a-zA-Z0-9]*'
+
+style:
+  ReturnCount:
+    active: true
+    # Early validation returns are idiomatic Kotlin; only the final return counts.
+    excludeGuardClauses: true
+
+# Third-party Jetpack Compose rules (io.nlopez.compose.rules:detekt).
+# Full list: https://mrmans0n.github.io/compose-rules/detekt/
+Compose:
+  ComposableAnnotationNaming:
+    active: true
+  ComposableNaming:
+    active: true
+  ComposableParamOrder:
+    active: true
+  CompositionLocalAllowlist:
+    active: true
+  CompositionLocalNaming:
+    active: true
+  ContentEmitterReturningValues:
+    active: true
+  ContentSlotReused:
+    active: true
+  ContentTrailingLambda:
+    active: true
+  DefaultsVisibility:
+    active: true
+  LambdaParameterEventTrailing:
+    active: true
+  LambdaParameterInRestartableEffect:
+    active: true
+  Material2:
+    active: false
+  ModifierClickableOrder:
+    active: true
+  ModifierComposed:
+    active: true
+  ModifierMissing:
+    active: true
+  ModifierNaming:
+    active: true
+  ModifierNotUsedAtRoot:
+    active: true
+  ModifierReused:
+    active: true
+  ModifierWithoutDefault:
+    active: true
+  MultipleEmitters:
+    active: true
+  MutableParams:
+    active: true
+  MutableStateAutoboxing:
+    active: true
+  MutableStateParam:
+    active: true
+  ParameterNaming:
+    active: true
+  PreviewAnnotationNaming:
+    active: true
+  PreviewNaming:
+    active: false
+  PreviewPublic:
+    active: true
+  RememberContentMissing:
+    active: true
+  RememberMissing:
+    active: true
+  UnstableCollections:
+    active: false
+  ViewModelForwarding:
+    active: true
+  ViewModelInjection:
+    active: true

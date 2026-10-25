@@ -14,18 +14,21 @@ import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
 
 /** One Point per vehicle; properties `id`, `label` and `type` drive the vehicle SymbolLayer. */
-internal fun vehicleFeatures(vehicles: List<VehiclePosition>): FeatureCollection<Point, JsonObject> =
+internal fun vehicleFeatures(
+    vehicles: List<VehiclePosition>,
+): FeatureCollection<Point, JsonObject> =
     FeatureCollection(
         vehicles.map { vehicle ->
             Feature(
                 geometry = Point(Position(longitude = vehicle.longitude, latitude = vehicle.latitude)),
-                properties = JsonObject(
-                    mapOf(
-                        "id" to JsonPrimitive(vehicle.vehicleId),
-                        "label" to JsonPrimitive(vehicleLabel(vehicle)),
-                        "type" to JsonPrimitive(vehicle.vehicleType.name),
+                properties =
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive(vehicle.vehicleId),
+                            "label" to JsonPrimitive(vehicleLabel(vehicle)),
+                            "type" to JsonPrimitive(vehicle.vehicleType.name),
+                        ),
                     ),
-                ),
             )
         },
     )
@@ -43,16 +46,22 @@ internal fun routeStopFeatures(route: RouteDisplayData): FeatureCollection<Point
         route.stops.map { stop ->
             Feature(
                 geometry = Point(Position(longitude = stop.lon, latitude = stop.lat)),
-                properties = JsonObject(
-                    mapOf("id" to JsonPrimitive(stop.stopId), "name" to JsonPrimitive(stop.stopName)),
-                ),
+                properties =
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive(stop.stopId),
+                            "name" to JsonPrimitive(stop.stopName),
+                        ),
+                    ),
             )
         },
     )
 
 /** The selected vehicle if it is still in the latest feed update. */
-internal fun selectedVehicle(vehicles: List<VehiclePosition>, selectedId: String?): VehiclePosition? =
-    selectedId?.let { id -> vehicles.firstOrNull { it.vehicleId == id } }
+internal fun selectedVehicle(
+    vehicles: List<VehiclePosition>,
+    selectedId: String?,
+): VehiclePosition? = selectedId?.let { id -> vehicles.firstOrNull { it.vehicleId == id } }
 
 /** The `id` property of a clicked vehicle feature. */
 internal fun clickedVehicleId(feature: Feature<*, JsonObject?>): String? =

@@ -113,16 +113,18 @@ class HomeViewModelTest {
 
     @Test
     fun `selecting tram loads route display with polyline and stops`() = runTest {
-        val routeData = RouteDisplayData(
-            routeId = "10",
-            routeShortName = "10",
-            routeColor = 0xFF0000,
-            polylinePoints = listOf(LatLon(51.76, 19.46), LatLon(51.77, 19.47)),
-            stops = listOf(
-                RouteStop("S1", "Piotrkowska", 51.76, 19.46),
-                RouteStop("S2", "Centrum", 51.77, 19.47),
-            ),
-        )
+        val routeData =
+            RouteDisplayData(
+                routeId = "10",
+                routeShortName = "10",
+                routeColor = 0xFF0000,
+                polylinePoints = listOf(LatLon(51.76, 19.46), LatLon(51.77, 19.47)),
+                stops =
+                    listOf(
+                        RouteStop("S1", "Piotrkowska", 51.76, 19.46),
+                        RouteStop("S2", "Centrum", 51.77, 19.47),
+                    ),
+            )
         fakeRouteDisplayRepo.routeData = mapOf("T1" to routeData)
 
         val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
@@ -144,9 +146,10 @@ class HomeViewModelTest {
 
     @Test
     fun `clearSelection clears vehicle id and route display`() = runTest {
-        fakeRouteDisplayRepo.routeData = mapOf(
-            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList())
-        )
+        fakeRouteDisplayRepo.routeData =
+            mapOf(
+                "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+            )
 
         val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
         val vehicle = tram()
@@ -222,10 +225,11 @@ class HomeViewModelTest {
 
     @Test
     fun `selecting another vehicle clears previous route while new one loads`() = runTest {
-        fakeRouteDisplayRepo.routeData = mapOf(
-            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
-            "T2" to RouteDisplayData("50", "50", 0, emptyList(), emptyList()),
-        )
+        fakeRouteDisplayRepo.routeData =
+            mapOf(
+                "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+                "T2" to RouteDisplayData("50", "50", 0, emptyList(), emptyList()),
+            )
 
         val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
 
@@ -251,9 +255,10 @@ class HomeViewModelTest {
 
     @Test
     fun `route is not published when selection cleared during load`() = runTest {
-        fakeRouteDisplayRepo.routeData = mapOf(
-            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
-        )
+        fakeRouteDisplayRepo.routeData =
+            mapOf(
+                "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+            )
         fakeRouteDisplayRepo.gate = CompletableDeferred()
 
         val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)

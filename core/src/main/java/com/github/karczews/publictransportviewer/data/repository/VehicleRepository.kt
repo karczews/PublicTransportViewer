@@ -23,12 +23,13 @@ class DefaultVehicleRepository(
 
     override fun observeVehiclePositions(): Flow<List<VehiclePosition>> = flow {
         while (true) {
-            val positions = try {
-                val raw = dataSource.getVehiclePositions()
-                enrichPositions(raw).also { lastKnownPositions = it }
-            } catch (_: Exception) {
-                lastKnownPositions
-            }
+            val positions =
+                try {
+                    val raw = dataSource.getVehiclePositions()
+                    enrichPositions(raw).also { lastKnownPositions = it }
+                } catch (_: Exception) {
+                    lastKnownPositions
+                }
             emit(positions)
             delay(POLL_INTERVAL_MS)
         }
@@ -48,10 +49,11 @@ class DefaultVehicleRepository(
                     routeShortName = route.routeShortName,
                     routeColor = route.routeColor,
                     tripHeadsign = trip?.tripHeadsign ?: vehicle.tripHeadsign,
-                    vehicleType = when (route.routeType) {
-                        0 -> VehicleType.TRAM
-                        else -> VehicleType.BUS
-                    },
+                    vehicleType =
+                        when (route.routeType) {
+                            0 -> VehicleType.TRAM
+                            else -> VehicleType.BUS
+                        },
                 )
             } else {
                 vehicle

@@ -12,8 +12,7 @@ import org.junit.Test
 
 class AlertsScreenTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+    @get:Rule val composeRule = createComposeRule()
 
     @Before
     fun setUp() {
@@ -48,7 +47,6 @@ class AlertsScreenTest {
     fun alertCard_expandShowsDescription() {
         composeRule.onNodeWithText("Tram 10 detour on Piotrkowska").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Due to roadworks, tram 10 is rerouted via Kilińskiego.")
-            .assertIsDisplayed()
+        composeRule.onNodeWithText("Due to roadworks, tram 10 is rerouted via Kilińskiego.").assertIsDisplayed()
     }
 }

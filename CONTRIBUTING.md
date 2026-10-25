@@ -48,3 +48,12 @@ refactor(di): migrate from Hilt to Koin
 - PR titles follow the same `type(scope): subject` format (squash-merge friendly).
 - CI must pass before merge.
 - Sign commits (SSH signing).
+
+## Formatting and static analysis
+
+- Formatting is enforced by Spotless with ktfmt (kotlinlang style, matching the
+  `kotlin.code.style=official` IDE setting): run
+  `./gradlew spotlessApply` before pushing, CI runs `spotlessCheck`.
+- Static analysis runs via `./gradlew detekt` (config in `config/detekt/detekt.yml`,
+  including Compose rules). Fix findings or suppress with a justifying comment;
+  don't weaken the shared config for a single case.

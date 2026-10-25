@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.github.karczews.publictransportviewer.core.R
@@ -23,29 +24,32 @@ import com.github.karczews.publictransportviewer.ui.stops.StopsViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun PublicTransportViewerApp(mapSdks: List<MapSdk>) {
+fun PublicTransportViewerApp(mapSdks: List<MapSdk>, modifier: Modifier = Modifier) {
     require(mapSdks.isNotEmpty()) { "At least one MapSdk is required" }
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     val scope = rememberCoroutineScope()
     val appContext = LocalContext.current.applicationContext
-    val initializer = remember { MapSdkInitializer(scope, initialize = { it.initialize(appContext) }) }
+    val initializer = remember {
+        MapSdkInitializer(scope, initialize = { it.initialize(appContext) })
+    }
 
     NavigationSuiteScaffold(
+        modifier = modifier,
         navigationSuiteItems = {
             AppDestinations.entries.forEach {
                 item(
                     icon = {
                         Icon(
                             painterResource(it.icon),
-                            contentDescription = it.label
+                            contentDescription = it.label,
                         )
                     },
                     label = { Text(it.label) },
                     selected = it == currentDestination,
-                    onClick = { currentDestination = it }
+                    onClick = { currentDestination = it },
                 )
             }
-        }
+        },
     ) {
         when (currentDestination) {
             AppDestinations.HOME -> {

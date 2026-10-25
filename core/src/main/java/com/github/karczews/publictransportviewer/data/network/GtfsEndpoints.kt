@@ -10,9 +10,7 @@ object GtfsEndpoints {
     fun tripUpdatesUrl(year: Int = 2025, month: Int = 6): String =
         "$BASE/$year/${"%02d".format(month)}/trip_updates.bin"
 
-    fun alertsUrl(year: Int = 2025, month: Int = 6): String =
-        "$BASE/$year/${"%02d".format(month)}/alerts.bin"
+    fun alertsUrl(year: Int = 2025, month: Int = 6): String = "$BASE/$year/${"%02d".format(month)}/alerts.bin"
 
-    fun gtfsZipUrl(year: Int = 2025, month: Int = 6): String =
-        "$BASE/$year/${"%02d".format(month)}/GTFS.zip"
+    fun gtfsZipUrl(year: Int = 2025, month: Int = 6): String = "$BASE/$year/${"%02d".format(month)}/GTFS.zip"
 }

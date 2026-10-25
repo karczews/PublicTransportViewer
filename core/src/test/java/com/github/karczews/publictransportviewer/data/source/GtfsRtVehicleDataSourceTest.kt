@@ -20,9 +20,7 @@ class GtfsRtVehicleDataSourceTest {
     private fun buildFeed(vararg entities: FeedEntity): FeedMessage =
         FeedMessage.newBuilder()
             .setHeader(
-                FeedHeader.newBuilder()
-                    .setGtfsRealtimeVersion("2.0")
-                    .setTimestamp(1000L)
+                FeedHeader.newBuilder().setGtfsRealtimeVersion("2.0").setTimestamp(1000L),
             )
             .addAllEntity(entities.toList())
             .build()
@@ -41,51 +39,44 @@ class GtfsRtVehicleDataSourceTest {
         stopId: String? = null,
         timestamp: Long = 1234567890L,
     ): FeedEntity {
-        val posBuilder = Position.newBuilder()
-            .setLatitude(lat)
-            .setLongitude(lon)
+        val posBuilder = Position.newBuilder().setLatitude(lat).setLongitude(lon)
         bearing?.let { posBuilder.setBearing(it) }
         speed?.let { posBuilder.setSpeed(it) }
 
-        val vpBuilder = VehiclePosition.newBuilder()
-            .setPosition(posBuilder)
-            .setTrip(
-                TripDescriptor.newBuilder()
-                    .setTripId(tripId)
-                    .setRouteId(routeId)
-            )
-            .setVehicle(
-                VehicleDescriptor.newBuilder()
-                    .setId(vehicleId)
-                    .setLabel(vehicleLabel)
-            )
-            .setCurrentStatus(status)
-            .setTimestamp(timestamp)
+        val vpBuilder =
+            VehiclePosition.newBuilder()
+                .setPosition(posBuilder)
+                .setTrip(
+                    TripDescriptor.newBuilder().setTripId(tripId).setRouteId(routeId),
+                )
+                .setVehicle(
+                    VehicleDescriptor.newBuilder().setId(vehicleId).setLabel(vehicleLabel),
+                )
+                .setCurrentStatus(status)
+                .setTimestamp(timestamp)
 
         stopId?.let { vpBuilder.setStopId(it) }
 
-        return FeedEntity.newBuilder()
-            .setId(id)
-            .setVehicle(vpBuilder)
-            .build()
+        return FeedEntity.newBuilder().setId(id).setVehicle(vpBuilder).build()
     }
 
     @Test
     fun `maps protobuf vehicle to domain model`() = runTest {
-        val feed = buildFeed(
-            vehicleEntity(
-                id = "e1",
-                routeId = "10",
-                tripId = "T1",
-                vehicleId = "V100",
-                vehicleLabel = "Tram 10",
-                lat = 51.76f,
-                lon = 19.46f,
-                bearing = 180f,
-                speed = 25.5f,
-                timestamp = 1700000000L,
+        val feed =
+            buildFeed(
+                vehicleEntity(
+                    id = "e1",
+                    routeId = "10",
+                    tripId = "T1",
+                    vehicleId = "V100",
+                    vehicleLabel = "Tram 10",
+                    lat = 51.76f,
+                    lon = 19.46f,
+                    bearing = 180f,
+                    speed = 25.5f,
+                    timestamp = 1700000000L,
+                ),
             )
-        )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -107,10 +98,11 @@ class GtfsRtVehicleDataSourceTest {
 
     @Test
     fun `infers TRAM for route ids 1-46`() = runTest {
-        val feed = buildFeed(
-            vehicleEntity(id = "e1", routeId = "1"),
-            vehicleEntity(id = "e2", routeId = "46", vehicleId = "V2"),
-        )
+        val feed =
+            buildFeed(
+                vehicleEntity(id = "e1", routeId = "1"),
+                vehicleEntity(id = "e2", routeId = "46", vehicleId = "V2"),
+            )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -122,11 +114,12 @@ class GtfsRtVehicleDataSourceTest {
 
     @Test
     fun `infers BUS for route ids above 46 and non-numeric`() = runTest {
-        val feed = buildFeed(
-            vehicleEntity(id = "e1", routeId = "50"),
-            vehicleEntity(id = "e2", routeId = "N1", vehicleId = "V2"),
-            vehicleEntity(id = "e3", routeId = "65A", vehicleId = "V3"),
-        )
+        val feed =
+            buildFeed(
+                vehicleEntity(id = "e1", routeId = "50"),
+                vehicleEntity(id = "e2", routeId = "N1", vehicleId = "V2"),
+                vehicleEntity(id = "e3", routeId = "65A", vehicleId = "V3"),
+            )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -139,11 +132,24 @@ class GtfsRtVehicleDataSourceTest {
 
     @Test
     fun `maps all vehicle stop statuses`() = runTest {
-        val feed = buildFeed(
-            vehicleEntity(id = "e1", status = VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO, vehicleId = "V1"),
-            vehicleEntity(id = "e2", status = VehiclePosition.VehicleStopStatus.STOPPED_AT, vehicleId = "V2"),
-            vehicleEntity(id = "e3", status = VehiclePosition.VehicleStopStatus.INCOMING_AT, vehicleId = "V3"),
-        )
+        val feed =
+            buildFeed(
+                vehicleEntity(
+                    id = "e1",
+                    status = VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO,
+                    vehicleId = "V1",
+                ),
+                vehicleEntity(
+                    id = "e2",
+                    status = VehiclePosition.VehicleStopStatus.STOPPED_AT,
+                    vehicleId = "V2",
+                ),
+                vehicleEntity(
+                    id = "e3",
+                    status = VehiclePosition.VehicleStopStatus.INCOMING_AT,
+                    vehicleId = "V3",
+                ),
+            )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -156,9 +162,10 @@ class GtfsRtVehicleDataSourceTest {
 
     @Test
     fun `includes stop id when present`() = runTest {
-        val feed = buildFeed(
-            vehicleEntity(id = "e1", stopId = "STOP_42"),
-        )
+        val feed =
+            buildFeed(
+                vehicleEntity(id = "e1", stopId = "STOP_42"),
+            )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -168,9 +175,10 @@ class GtfsRtVehicleDataSourceTest {
 
     @Test
     fun `stop id is null when not set`() = runTest {
-        val feed = buildFeed(
-            vehicleEntity(id = "e1", stopId = null),
-        )
+        val feed =
+            buildFeed(
+                vehicleEntity(id = "e1", stopId = null),
+            )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -180,9 +188,10 @@ class GtfsRtVehicleDataSourceTest {
 
     @Test
     fun `defaults bearing and speed to zero when absent`() = runTest {
-        val feed = buildFeed(
-            vehicleEntity(id = "e1", bearing = null, speed = null),
-        )
+        val feed =
+            buildFeed(
+                vehicleEntity(id = "e1", bearing = null, speed = null),
+            )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -193,13 +202,12 @@ class GtfsRtVehicleDataSourceTest {
 
     @Test
     fun `skips entities without vehicle field`() = runTest {
-        val entityWithoutVehicle = FeedEntity.newBuilder()
-            .setId("no-vehicle")
-            .build()
-        val feed = buildFeed(
-            entityWithoutVehicle,
-            vehicleEntity(id = "e1"),
-        )
+        val entityWithoutVehicle = FeedEntity.newBuilder().setId("no-vehicle").build()
+        val feed =
+            buildFeed(
+                entityWithoutVehicle,
+                vehicleEntity(id = "e1"),
+            )
         val api = FakeGtfsRtApi(vehiclePositionsFeed = feed)
         val dataSource = GtfsRtVehicleDataSource(api)
 
@@ -222,12 +230,9 @@ private class FakeGtfsRtApi(
     private val vehiclePositionsFeed: FeedMessage = FeedMessage.getDefaultInstance(),
 ) : GtfsRtApi {
 
-    override suspend fun fetchVehiclePositions(): Result<FeedMessage> =
-        Result.success(vehiclePositionsFeed)
+    override suspend fun fetchVehiclePositions(): Result<FeedMessage> = Result.success(vehiclePositionsFeed)
 
-    override suspend fun fetchTripUpdates(): Result<FeedMessage> =
-        Result.success(FeedMessage.getDefaultInstance())
+    override suspend fun fetchTripUpdates(): Result<FeedMessage> = Result.success(FeedMessage.getDefaultInstance())
 
-    override suspend fun fetchAlerts(): Result<FeedMessage> =
-        Result.success(FeedMessage.getDefaultInstance())
+    override suspend fun fetchAlerts(): Result<FeedMessage> = Result.success(FeedMessage.getDefaultInstance())
 }

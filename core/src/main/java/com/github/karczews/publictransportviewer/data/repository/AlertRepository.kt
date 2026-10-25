@@ -20,12 +20,13 @@ class DefaultAlertRepository(
 
     override fun observeAlerts(): Flow<List<ServiceAlert>> = flow {
         while (true) {
-            val alerts = try {
-                val raw = alertDataSource.getAlerts()
-                enrichAlerts(raw).also { lastAlerts = it }
-            } catch (_: Exception) {
-                lastAlerts
-            }
+            val alerts =
+                try {
+                    val raw = alertDataSource.getAlerts()
+                    enrichAlerts(raw).also { lastAlerts = it }
+                } catch (_: Exception) {
+                    lastAlerts
+                }
             emit(alerts)
             delay(POLL_INTERVAL_MS)
         }
@@ -33,9 +34,12 @@ class DefaultAlertRepository(
 
     private suspend fun enrichAlerts(alerts: List<ServiceAlert>): List<ServiceAlert> {
         val allRouteIds = alerts.flatMap { it.affectedRouteIds }.distinct()
-        val routeNames = allRouteIds.mapNotNull { id ->
-            routeDao.getRouteById(id)?.let { id to it.routeShortName }
-        }.toMap()
+        val routeNames =
+            allRouteIds
+                .mapNotNull { id ->
+                    routeDao.getRouteById(id)?.let { id to it.routeShortName }
+                }
+                .toMap()
 
         return alerts.map { alert ->
             alert.copy(

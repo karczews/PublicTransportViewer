@@ -13,51 +13,56 @@ import org.junit.Test
 
 class MapLibreFeaturesTest {
 
-    private val tram10 = VehiclePosition(
-        vehicleId = "tram-v1",
-        routeId = "10",
-        tripId = "trip-10-1",
-        label = "10",
-        latitude = 51.7592,
-        longitude = 19.4560,
-        bearing = 90f,
-        speed = 20f,
-        timestamp = 1700000000L,
-        vehicleType = VehicleType.TRAM,
-        currentStatus = VehicleStatus.IN_TRANSIT_TO,
-        routeShortName = "10",
-        tripHeadsign = "Chocianowice IKEA",
-        routeColor = "CE1124",
-    )
+    private val tram10 =
+        VehiclePosition(
+            vehicleId = "tram-v1",
+            routeId = "10",
+            tripId = "trip-10-1",
+            label = "10",
+            latitude = 51.7592,
+            longitude = 19.4560,
+            bearing = 90f,
+            speed = 20f,
+            timestamp = 1700000000L,
+            vehicleType = VehicleType.TRAM,
+            currentStatus = VehicleStatus.IN_TRANSIT_TO,
+            routeShortName = "10",
+            tripHeadsign = "Chocianowice IKEA",
+            routeColor = "CE1124",
+        )
 
-    private val bus50 = tram10.copy(
-        vehicleId = "bus-v2",
-        routeId = "50",
-        tripId = "trip-50-1",
-        label = "50",
-        latitude = 51.7610,
-        longitude = 19.4580,
-        vehicleType = VehicleType.BUS,
-        routeShortName = "50",
-        tripHeadsign = "Retkinia",
-        routeColor = "0070BB",
-    )
+    private val bus50 =
+        tram10.copy(
+            vehicleId = "bus-v2",
+            routeId = "50",
+            tripId = "trip-50-1",
+            label = "50",
+            latitude = 51.7610,
+            longitude = 19.4580,
+            vehicleType = VehicleType.BUS,
+            routeShortName = "50",
+            tripHeadsign = "Retkinia",
+            routeColor = "0070BB",
+        )
 
-    private val routeForTram10 = RouteDisplayData(
-        routeId = "10",
-        routeShortName = "10",
-        routeColor = 0xFFCE1124.toInt(),
-        polylinePoints = listOf(
-            LatLon(51.7550, 19.4500),
-            LatLon(51.7592, 19.4560),
-            LatLon(51.7620, 19.4600),
-        ),
-        stops = listOf(
-            RouteStop("s1", "Piotrkowska Centrum", 51.7550, 19.4500),
-            RouteStop("s2", "Plac Wolności", 51.7592, 19.4560),
-            RouteStop("s3", "Legionów", 51.7620, 19.4600),
-        ),
-    )
+    private val routeForTram10 =
+        RouteDisplayData(
+            routeId = "10",
+            routeShortName = "10",
+            routeColor = 0xFFCE1124.toInt(),
+            polylinePoints =
+                listOf(
+                    LatLon(51.7550, 19.4500),
+                    LatLon(51.7592, 19.4560),
+                    LatLon(51.7620, 19.4600),
+                ),
+            stops =
+                listOf(
+                    RouteStop("s1", "Piotrkowska Centrum", 51.7550, 19.4500),
+                    RouteStop("s2", "Plac Wolności", 51.7592, 19.4560),
+                    RouteStop("s3", "Legionów", 51.7620, 19.4600),
+                ),
+        )
 
     @Test
     fun vehicleFeatures_mapsPropertiesAndLonLatOrder() {
@@ -95,7 +100,10 @@ class MapLibreFeaturesTest {
     fun routeStopFeatures_mapsIdsNamesAndPositions() {
         val features = routeStopFeatures(routeForTram10).features
 
-        assertEquals(listOf("s1", "s2", "s3"), features.map { it.properties["id"]?.jsonPrimitive?.content })
+        assertEquals(
+            listOf("s1", "s2", "s3"),
+            features.map { it.properties["id"]?.jsonPrimitive?.content },
+        )
         assertEquals(
             listOf("Piotrkowska Centrum", "Plac Wolności", "Legionów"),
             features.map { it.properties["name"]?.jsonPrimitive?.content },

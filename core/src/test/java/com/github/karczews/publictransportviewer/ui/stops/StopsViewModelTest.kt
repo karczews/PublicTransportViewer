@@ -40,10 +40,11 @@ class StopsViewModelTest {
     private val stop1 = StopEntity("S1", "Piotrkowska Centrum", 51.76, 19.46, "1234", 0, null)
     private val stop2 = StopEntity("S2", "Politechnika", 51.75, 19.45, "5678", 0, null)
 
-    private val departures = listOf(
-        StopDeparture("T1", "R1", "10", "Chocianowice", 45000, 120, "CE1124", VehicleType.TRAM),
-        StopDeparture("T2", "R2", "50A", "Retkinia", 45300, null, null, VehicleType.BUS),
-    )
+    private val departures =
+        listOf(
+            StopDeparture("T1", "R1", "10", "Chocianowice", 45000, 120, "CE1124", VehicleType.TRAM),
+            StopDeparture("T2", "R2", "50A", "Retkinia", 45300, null, null, VehicleType.BUS),
+        )
 
     @Test
     fun `search returns matching stops`() = runTest {
@@ -143,8 +144,9 @@ private class FakeStopRepository(
 ) : StopRepository {
     var departureCallCount = 0
 
-    override suspend fun searchStops(query: String): List<StopEntity> =
-        stops.filter { query.trim() in it.stopName }
+    override suspend fun searchStops(query: String): List<StopEntity> = stops.filter {
+        query.trim() in it.stopName
+    }
 
     override fun observeDeparturesForStop(stopId: String): Flow<List<StopDeparture>> {
         departureCallCount++

@@ -88,26 +88,13 @@ private fun AlertCard(alert: ServiceAlert) {
     Card(
         onClick = { expanded = !expanded },
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(effectColor),
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    effectLabel(alert.effect),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = effectColor,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            AlertHeader(alert, effectColor)
             Spacer(Modifier.height(6.dp))
             Text(
                 alert.headerText.ifBlank { "Alert" },
@@ -125,25 +112,46 @@ private fun AlertCard(alert: ServiceAlert) {
             }
 
             AnimatedVisibility(visible = expanded) {
-                Column {
-                    if (alert.descriptionText.isNotBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            alert.descriptionText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (alert.affectedStopIds.isNotEmpty()) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Affected stops: ${alert.affectedStopIds.size}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                AlertDetails(alert)
             }
+        }
+    }
+}
+
+@Composable
+private fun AlertHeader(alert: ServiceAlert, effectColor: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(effectColor),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            effectLabel(alert.effect),
+            style = MaterialTheme.typography.labelSmall,
+            color = effectColor,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+@Composable
+private fun AlertDetails(alert: ServiceAlert) {
+    Column {
+        if (alert.descriptionText.isNotBlank()) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                alert.descriptionText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (alert.affectedStopIds.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Affected stops: ${alert.affectedStopIds.size}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -151,10 +159,10 @@ private fun AlertCard(alert: ServiceAlert) {
 @Composable
 private fun RouteBadge(name: String) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+        modifier =
+            Modifier.clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(horizontal = 8.dp, vertical = 2.dp),
     ) {
         Text(
             name,
@@ -165,26 +173,30 @@ private fun RouteBadge(name: String) {
     }
 }
 
-private fun effectLabel(effect: AlertEffect): String = when (effect) {
-    AlertEffect.NO_SERVICE -> "NO SERVICE"
-    AlertEffect.REDUCED_SERVICE -> "REDUCED SERVICE"
-    AlertEffect.SIGNIFICANT_DELAYS -> "DELAYS"
-    AlertEffect.DETOUR -> "DETOUR"
-    AlertEffect.ADDITIONAL_SERVICE -> "ADDITIONAL SERVICE"
-    AlertEffect.MODIFIED_SERVICE -> "MODIFIED SERVICE"
-    AlertEffect.STOP_MOVED -> "STOP MOVED"
-    AlertEffect.OTHER_EFFECT -> "ALERT"
-    AlertEffect.UNKNOWN_EFFECT -> "ALERT"
-}
+private fun effectLabel(effect: AlertEffect): String =
+    when (effect) {
+        AlertEffect.NO_SERVICE -> "NO SERVICE"
+        AlertEffect.REDUCED_SERVICE -> "REDUCED SERVICE"
+        AlertEffect.SIGNIFICANT_DELAYS -> "DELAYS"
+        AlertEffect.DETOUR -> "DETOUR"
+        AlertEffect.ADDITIONAL_SERVICE -> "ADDITIONAL SERVICE"
+        AlertEffect.MODIFIED_SERVICE -> "MODIFIED SERVICE"
+        AlertEffect.STOP_MOVED -> "STOP MOVED"
+        AlertEffect.OTHER_EFFECT -> "ALERT"
+        AlertEffect.UNKNOWN_EFFECT -> "ALERT"
+    }
 
-private fun effectColor(effect: AlertEffect): Color = when (effect) {
-    AlertEffect.NO_SERVICE -> Color(0xFFB00020)
-    AlertEffect.REDUCED_SERVICE -> Color(0xFFE65100)
-    AlertEffect.SIGNIFICANT_DELAYS -> Color(0xFFFF6F00)
-    AlertEffect.DETOUR -> Color(0xFF0277BD)
-    AlertEffect.ADDITIONAL_SERVICE -> Color(0xFF2E7D32)
-    AlertEffect.MODIFIED_SERVICE -> Color(0xFF6A1B9A)
-    AlertEffect.STOP_MOVED -> Color(0xFF00838F)
-    AlertEffect.OTHER_EFFECT -> Color(0xFF455A64)
-    AlertEffect.UNKNOWN_EFFECT -> Color(0xFF455A64)
-}
+private val EFFECT_COLORS =
+    mapOf(
+        AlertEffect.NO_SERVICE to Color(0xFFB00020),
+        AlertEffect.REDUCED_SERVICE to Color(0xFFE65100),
+        AlertEffect.SIGNIFICANT_DELAYS to Color(0xFFFF6F00),
+        AlertEffect.DETOUR to Color(0xFF0277BD),
+        AlertEffect.ADDITIONAL_SERVICE to Color(0xFF2E7D32),
+        AlertEffect.MODIFIED_SERVICE to Color(0xFF6A1B9A),
+        AlertEffect.STOP_MOVED to Color(0xFF00838F),
+        AlertEffect.OTHER_EFFECT to Color(0xFF455A64),
+        AlertEffect.UNKNOWN_EFFECT to Color(0xFF455A64),
+    )
+
+private fun effectColor(effect: AlertEffect): Color = EFFECT_COLORS.getValue(effect)

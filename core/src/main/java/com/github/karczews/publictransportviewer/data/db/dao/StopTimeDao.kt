@@ -15,9 +15,7 @@ interface StopTimeDao {
     @Query("SELECT * FROM gtfs_stop_times WHERE stop_id = :stopId ORDER BY departure_time")
     suspend fun getStopTimesForStop(stopId: String): List<StopTimeEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(stopTimes: List<StopTimeEntity>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAll(stopTimes: List<StopTimeEntity>)
 
-    @Query("DELETE FROM gtfs_stop_times")
-    suspend fun deleteAll()
+    @Query("DELETE FROM gtfs_stop_times") suspend fun deleteAll()
 }

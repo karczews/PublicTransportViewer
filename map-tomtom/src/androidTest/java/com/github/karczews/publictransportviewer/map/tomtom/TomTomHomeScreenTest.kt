@@ -16,8 +16,7 @@ import org.junit.Test
 
 class TomTomHomeScreenTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+    @get:Rule val composeRule = createComposeRule()
 
     @Test
     fun homeScreen_showsRecenterButton() {

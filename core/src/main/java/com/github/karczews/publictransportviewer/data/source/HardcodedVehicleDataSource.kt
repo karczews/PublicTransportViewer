@@ -6,6 +6,8 @@ import com.github.karczews.publictransportviewer.data.model.VehicleType
 
 class HardcodedVehicleDataSource {
 
+    // Demo fallback data: a static table of vehicles, long by nature rather than by logic.
+    @Suppress("LongMethod")
     fun getVehiclePositions(): List<VehiclePosition> {
         val now = System.currentTimeMillis() / 1000
         return listOf(

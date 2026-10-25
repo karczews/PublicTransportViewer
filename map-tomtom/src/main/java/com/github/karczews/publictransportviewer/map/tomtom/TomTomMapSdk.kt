@@ -21,12 +21,14 @@ class TomTomMapSdk(private val apiKey: String = BuildConfig.TOMTOM_API_KEY) : Ma
             if (!TomTomSdk.isInitialized) {
                 TomTomSdk.initialize(
                     context = context,
-                    sdkConfiguration = buildSdkConfiguration(
-                        context = context,
-                        apiKey = apiKey,
-                        // No consent UX yet: stay opted out rather than enabling telemetry by default.
-                        telemetryUserConsent = { UserConsent.TelemetryOff },
-                    ),
+                    sdkConfiguration =
+                        buildSdkConfiguration(
+                            context = context,
+                            apiKey = apiKey,
+                            // No consent UX yet: stay opted out rather than enabling telemetry by
+                            // default.
+                            telemetryUserConsent = { UserConsent.TelemetryOff },
+                        ),
                 )
             }
         }

@@ -26,8 +26,7 @@ class MapSdkInitializerTest {
     private class TestSdk(override val id: String = "a") : MapSdk {
         override val displayName = "A"
 
-        @Composable
-        override fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier) = Unit
+        @Composable override fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier) = Unit
     }
 
     private val sdk = TestSdk()
@@ -36,7 +35,11 @@ class MapSdkInitializerTest {
     fun ensureInitialized_runsInitializeOnceForRepeatedCalls() = runTest {
         var calls = 0
         val gate = CompletableDeferred<Unit>()
-        val initializer = MapSdkInitializer(backgroundScope) { calls++; gate.await() }
+        val initializer =
+            MapSdkInitializer(backgroundScope) {
+                calls++
+                gate.await()
+            }
 
         val first = initializer.ensureInitialized(sdk)
         val second = initializer.ensureInitialized(sdk)
@@ -67,10 +70,11 @@ class MapSdkInitializerTest {
     @Test
     fun ensureInitialized_retriesAfterFailure() = runTest {
         var calls = 0
-        val initializer = MapSdkInitializer(backgroundScope) {
-            calls++
-            if (calls == 1) throw IllegalStateException("boom")
-        }
+        val initializer =
+            MapSdkInitializer(backgroundScope) {
+                calls++
+                if (calls == 1) throw IllegalStateException("boom")
+            }
 
         val failed = initializer.ensureInitialized(sdk).await()
 
@@ -86,7 +90,7 @@ class MapSdkInitializerTest {
 
     @Test
     fun isReady_falseBeforeInit_trueAfter() = runTest {
-        val initializer = MapSdkInitializer(backgroundScope) { }
+        val initializer = MapSdkInitializer(backgroundScope) {}
 
         assertFalse(initializer.isReady("a"))
         initializer.ensureInitialized(sdk).await()
@@ -95,12 +99,14 @@ class MapSdkInitializerTest {
 
     @Test
     fun ensureInitialized_retriesAfterSynchronousFailureOnImmediateDispatcher() = runTest {
-        // An unconfined scope runs the init inline, before ensureInitialized has stored its Deferred.
+        // An unconfined scope runs the init inline, before ensureInitialized has stored its
+        // Deferred.
         var calls = 0
-        val initializer = MapSdkInitializer(CoroutineScope(UnconfinedTestDispatcher(testScheduler))) {
-            calls++
-            if (calls == 1) throw IllegalStateException("boom")
-        }
+        val initializer =
+            MapSdkInitializer(CoroutineScope(UnconfinedTestDispatcher(testScheduler))) {
+                calls++
+                if (calls == 1) throw IllegalStateException("boom")
+            }
 
         assertTrue(initializer.ensureInitialized(sdk).await().isFailure)
         val retried = initializer.ensureInitialized(sdk).await()
@@ -113,11 +119,12 @@ class MapSdkInitializerTest {
     fun ensureInitialized_reportsFailureWithSdkAndThrowable() = runTest {
         val failure = IllegalStateException("boom")
         var reported: Pair<MapSdk, Throwable>? = null
-        val initializer = MapSdkInitializer(
-            scope = backgroundScope,
-            initialize = { throw failure },
-            onFailure = { failedSdk, error -> reported = failedSdk to error },
-        )
+        val initializer =
+            MapSdkInitializer(
+                scope = backgroundScope,
+                initialize = { throw failure },
+                onFailure = { failedSdk, error -> reported = failedSdk to error },
+            )
 
         initializer.ensureInitialized(sdk).await()
 
@@ -130,11 +137,12 @@ class MapSdkInitializerTest {
     fun ensureInitialized_rethrowsCancellationWithoutReportingFailure() = runTest {
         val cancellation = CancellationException("scope torn down")
         var reported: Throwable? = null
-        val initializer = MapSdkInitializer(
-            scope = backgroundScope,
-            initialize = { throw cancellation },
-            onFailure = { _, error -> reported = error },
-        )
+        val initializer =
+            MapSdkInitializer(
+                scope = backgroundScope,
+                initialize = { throw cancellation },
+                onFailure = { _, error -> reported = error },
+            )
 
         var thrown: CancellationException? = null
         try {

@@ -1,23 +1,23 @@
 package com.github.karczews.publictransportviewer.data.source
 
-import kotlinx.coroutines.runBlocking
+import java.io.BufferedReader
+import java.io.StringReader
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.io.BufferedReader
-import java.io.StringReader
 
 class GtfsCsvParserTest {
 
-    private fun reader(content: String): BufferedReader =
-        BufferedReader(StringReader(content))
+    private fun reader(content: String): BufferedReader = BufferedReader(StringReader(content))
 
     @Test
     fun `parseRoutes maps all fields correctly`() {
-        val csv = """
+        val csv =
+            """
             route_id,agency_id,route_short_name,route_long_name,route_type,route_color,route_text_color
             1,MPK,1,Helenówek - Chocianowice IKEA,0,CE1124,FFFFFF
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val routes = GtfsCsvParser.parseRoutes(reader(csv))
 
@@ -34,10 +34,12 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseRoutes handles blank optional fields as null`() {
-        val csv = """
+        val csv =
+            """
             route_id,route_short_name,route_long_name,route_type,route_color
             1,1,Some Route,3,
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val routes = GtfsCsvParser.parseRoutes(reader(csv))
 
@@ -48,10 +50,12 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseRoutes handles different column order`() {
-        val csv = """
+        val csv =
+            """
             route_type,route_id,route_long_name,route_short_name
             0,42,Some Long Name,42
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val routes = GtfsCsvParser.parseRoutes(reader(csv))
 
@@ -62,10 +66,12 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseStops maps coordinates correctly`() {
-        val csv = """
+        val csv =
+            """
             stop_id,stop_name,stop_lat,stop_lon,stop_code,location_type,parent_station
             S1,Piotrkowska Centrum,51.7592,19.4560,1234,0,
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val stops = GtfsCsvParser.parseStops(reader(csv))
 
@@ -81,10 +87,12 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseTrips maps headsign and shape`() {
-        val csv = """
+        val csv =
+            """
             trip_id,route_id,service_id,trip_headsign,direction_id,shape_id
             T1,R1,WD,Chocianowice,0,SH1
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val trips = GtfsCsvParser.parseTrips(reader(csv))
 
@@ -98,12 +106,14 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseStopTimesStreaming batches correctly`() {
-        val csv = """
+        val csv =
+            """
             trip_id,stop_sequence,stop_id,arrival_time,departure_time
             T1,1,S1,08:00:00,08:00:30
             T1,2,S2,08:05:00,08:05:30
             T1,3,S3,08:10:00,08:10:30
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val allBatches = mutableListOf<List<Any>>()
         GtfsCsvParser.parseStopTimesStreaming(reader(csv), batchSize = 2) { batch ->
@@ -117,10 +127,12 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseStopTimesStreaming parses time fields`() {
-        val csv = """
+        val csv =
+            """
             trip_id,stop_sequence,stop_id,arrival_time,departure_time
             T1,1,S1,25:30:00,25:30:30
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val results = mutableListOf<com.github.karczews.publictransportviewer.data.db.entity.StopTimeEntity>()
         GtfsCsvParser.parseStopTimesStreaming(reader(csv)) { batch ->
@@ -134,10 +146,12 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseRoutes handles quoted fields with commas`() {
-        val csv = """
+        val csv =
+            """
             route_id,route_short_name,route_long_name,route_type
             1,1,"Helenówek - Chocianowice, IKEA",0
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val routes = GtfsCsvParser.parseRoutes(reader(csv))
 
@@ -163,12 +177,14 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseRoutes skips rows with fewer columns than header`() {
-        val csv = """
+        val csv =
+            """
             route_id,route_short_name,route_long_name,route_type
             1,1,Test,0
             bad,row
             2,2,Test2,3
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val routes = GtfsCsvParser.parseRoutes(reader(csv))
         assertEquals(2, routes.size)
@@ -176,13 +192,18 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseShapesStreaming parses coordinates`() {
-        val csv = """
+        val csv =
+            """
             shape_id,shape_pt_sequence,shape_pt_lat,shape_pt_lon
             SH1,1,51.7592,19.4560
             SH1,2,51.7600,19.4570
-        """.trimIndent()
+            """
+                .trimIndent()
 
-        val results = mutableListOf<com.github.karczews.publictransportviewer.data.db.entity.ShapePointEntity>()
+        val results =
+            mutableListOf<
+                com.github.karczews.publictransportviewer.data.db.entity.ShapePointEntity,
+            >()
         GtfsCsvParser.parseShapesStreaming(reader(csv)) { batch ->
             results.addAll(batch)
         }
@@ -196,12 +217,14 @@ class GtfsCsvParserTest {
 
     @Test
     fun `parseRoutes handles multiple rows`() {
-        val csv = """
+        val csv =
+            """
             route_id,route_short_name,route_long_name,route_type
             1,1,Route One,0
             50,50A,Route Fifty,3
             99,N1,Night Route,3
-        """.trimIndent()
+            """
+                .trimIndent()
 
         val routes = GtfsCsvParser.parseRoutes(reader(csv))
 

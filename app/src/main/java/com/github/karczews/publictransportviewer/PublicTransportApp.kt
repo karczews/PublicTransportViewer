@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import com.github.karczews.publictransportviewer.data.source.GtfsStaticDataSource
 import com.github.karczews.publictransportviewer.data.worker.GtfsRefreshWorker
 import com.github.karczews.publictransportviewer.di.CoreModule
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,15 +19,13 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.workmanager.koin.workManagerFactory
 import org.koin.core.annotation.KoinApplication
 import org.koin.plugin.module.dsl.startKoin
-import java.util.concurrent.TimeUnit
 
 /**
- * Aggregator type for the Koin compiler plugin: declares which annotated modules make up the
- * application graph. `startKoin<PublicTransportKoinConfiguration>()` loads [CoreModule] and triggers
- * the compile-time full-graph safety check.
+ * Aggregator type for the Koin compiler plugin: declares which annotated modules make up the application graph.
+ * `startKoin<PublicTransportKoinConfiguration>()` loads [CoreModule] and triggers the compile-time full-graph safety
+ * check.
  */
-@KoinApplication(modules = [CoreModule::class])
-internal object PublicTransportKoinConfiguration
+@KoinApplication(modules = [CoreModule::class]) internal object PublicTransportKoinConfiguration
 
 class PublicTransportApp : Application() {
 
@@ -49,11 +48,12 @@ class PublicTransportApp : Application() {
 
     private fun scheduleGtfsRefresh() {
         val periodicRequest = PeriodicWorkRequestBuilder<GtfsRefreshWorker>(7, TimeUnit.DAYS).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            GtfsRefreshWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
-            periodicRequest,
-        )
+        WorkManager.getInstance(this)
+            .enqueueUniquePeriodicWork(
+                GtfsRefreshWorker.WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                periodicRequest,
+            )
     }
 
     private fun triggerInitialGtfsDownloadIfNeeded() {

@@ -15,10 +15,11 @@ import org.junit.Test
 
 class MapLibreHomeScreenTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+    @get:Rule val composeRule = createComposeRule()
 
-    private fun setScreen(viewModel: HomeViewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())) {
+    private fun setScreen(
+        viewModel: HomeViewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository()),
+    ) {
         composeRule.setContent {
             MapLibreMapSdk().HomeScreen(viewModel, Modifier.fillMaxSize())
         }

@@ -14,10 +14,12 @@ class GtfsRefreshWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        return gtfsStaticDataSource.downloadAndImport().fold(
-            onSuccess = { Result.success() },
-            onFailure = { Result.retry() },
-        )
+        return gtfsStaticDataSource
+            .downloadAndImport()
+            .fold(
+                onSuccess = { Result.success() },
+                onFailure = { Result.retry() },
+            )
     }
 
     companion object {

@@ -24,7 +24,8 @@ class AlertsViewModel(
 
     init {
         viewModelScope.launch {
-            repository.observeAlerts()
+            repository
+                .observeAlerts()
                 .catch { /* keep last known */ }
                 .collect { alerts ->
                     _alerts.value = alerts

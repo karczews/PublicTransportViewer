@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -20,6 +22,25 @@ android {
     }
 }
 
+spotless {
+    // Spotless cannot infer Android source sets, so the target is set explicitly.
+    kotlin {
+        target("src/**/*.kt")
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    kotlinGradle {
+        target("*.gradle.kts")
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
+    }
+}
+
+detekt {
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+}
+
 dependencies {
     implementation(project(":core"))
     implementation(platform(libs.koin.bom))
@@ -27,4 +48,5 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.test.runner)
+    detektPlugins(libs.detekt.compose.rules)
 }

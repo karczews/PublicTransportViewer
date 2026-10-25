@@ -16,8 +16,7 @@ import org.junit.Test
 
 class StopsScreenTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+    @get:Rule val composeRule = createComposeRule()
 
     @Before
     fun setUp() {

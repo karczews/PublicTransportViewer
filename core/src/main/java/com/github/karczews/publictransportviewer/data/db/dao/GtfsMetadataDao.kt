@@ -9,12 +9,9 @@ import com.github.karczews.publictransportviewer.data.db.entity.GtfsMetadataEnti
 @Dao
 interface GtfsMetadataDao {
 
-    @Query("SELECT value FROM gtfs_metadata WHERE `key` = :key")
-    suspend fun getValue(key: String): String?
+    @Query("SELECT value FROM gtfs_metadata WHERE `key` = :key") suspend fun getValue(key: String): String?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun setValue(entity: GtfsMetadataEntity)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun setValue(entity: GtfsMetadataEntity)
 
-    @Query("DELETE FROM gtfs_metadata")
-    suspend fun deleteAll()
+    @Query("DELETE FROM gtfs_metadata") suspend fun deleteAll()
 }

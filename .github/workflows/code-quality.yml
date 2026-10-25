@@ -1,0 +1,42 @@
+name: Code Quality
+
+on:
+  workflow_call:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25.0.5+8.0.LTS
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - run: ./gradlew spotlessCheck -PtomtomApiKey=""
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25.0.5+8.0.LTS
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - run: ./gradlew detekt -PtomtomApiKey=""
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: detekt-results
+          path: |
+            **/build/reports/detekt/detekt.html
+            **/build/reports/detekt/detekt.xml
+          retention-days: 7

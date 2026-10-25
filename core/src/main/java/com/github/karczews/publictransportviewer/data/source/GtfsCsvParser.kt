@@ -9,6 +9,8 @@ import java.io.BufferedReader
 
 object GtfsCsvParser {
 
+    private const val BYTE_ORDER_MARK = 0xFEFF
+
     fun parseRoutes(reader: BufferedReader): List<RouteEntity> {
         val (header, lines) = readCsv(reader)
         return lines.map { fields ->
@@ -74,7 +76,7 @@ object GtfsCsvParser {
                         departureTime = fields.getValue(header, "departure_time"),
                         pickupType = fields.getOrNull(header, "pickup_type")?.toIntOrNull(),
                         dropOffType = fields.getOrNull(header, "drop_off_type")?.toIntOrNull(),
-                    )
+                    ),
                 )
                 if (batch.size >= batchSize) {
                     kotlinx.coroutines.runBlocking { onBatch(batch.toList()) }
@@ -105,7 +107,7 @@ object GtfsCsvParser {
                         shapePtSequence = fields.getValue(header, "shape_pt_sequence").toInt(),
                         shapePtLat = fields.getValue(header, "shape_pt_lat").toDouble(),
                         shapePtLon = fields.getValue(header, "shape_pt_lon").toDouble(),
-                    )
+                    ),
                 )
                 if (batch.size >= batchSize) {
                     kotlinx.coroutines.runBlocking { onBatch(batch.toList()) }
@@ -121,11 +123,13 @@ object GtfsCsvParser {
     private fun readCsv(reader: BufferedReader): Pair<List<String>, List<List<String>>> {
         val headerLine = reader.readLine()?.stripBom() ?: return emptyList<String>() to emptyList()
         val header = parseCsvLine(headerLine)
-        val rows = reader.lineSequence()
-            .filter { it.isNotBlank() }
-            .map { parseCsvLine(it) }
-            .filter { it.size >= header.size }
-            .toList()
+        val rows =
+            reader
+                .lineSequence()
+                .filter { it.isNotBlank() }
+                .map { parseCsvLine(it) }
+                .filter { it.size >= header.size }
+                .toList()
         return header to rows
     }
 
@@ -148,8 +152,7 @@ object GtfsCsvParser {
         return fields
     }
 
-    private fun String.stripBom(): String =
-        if (isNotEmpty() && this[0].code == 0xFEFF) substring(1) else this
+    private fun String.stripBom(): String = if (isNotEmpty() && this[0].code == BYTE_ORDER_MARK) substring(1) else this
 
     private fun List<String>.getValue(header: List<String>, column: String): String {
         val index = header.indexOf(column)

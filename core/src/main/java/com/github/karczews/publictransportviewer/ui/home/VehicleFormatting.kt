@@ -11,17 +11,19 @@ fun vehicleLabel(vehicle: VehiclePosition): String =
 
 /** One-line description of a vehicle, e.g. "Tram 10 → Chocianowice IKEA" or "Bus 50". */
 fun vehicleTitle(vehicle: VehiclePosition): String {
-    val typeName = when (vehicle.vehicleType) {
-        VehicleType.TRAM -> "Tram"
-        VehicleType.BUS -> "Bus"
-    }
+    val typeName =
+        when (vehicle.vehicleType) {
+            VehicleType.TRAM -> "Tram"
+            VehicleType.BUS -> "Bus"
+        }
     val routeName = vehicleLabel(vehicle)
     val headsign = vehicle.tripHeadsign
     return if (headsign != null) "$typeName $routeName → $headsign" else "$typeName $routeName"
 }
 
 @DrawableRes
-fun vehicleIconRes(type: VehicleType): Int = when (type) {
-    VehicleType.TRAM -> R.drawable.ic_tram
-    VehicleType.BUS -> R.drawable.ic_bus
-}
+fun vehicleIconRes(type: VehicleType): Int =
+    when (type) {
+        VehicleType.TRAM -> R.drawable.ic_tram
+        VehicleType.BUS -> R.drawable.ic_bus
+    }

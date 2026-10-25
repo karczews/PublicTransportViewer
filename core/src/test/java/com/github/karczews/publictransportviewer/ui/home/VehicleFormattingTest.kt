@@ -9,30 +9,32 @@ import org.junit.Test
 
 class VehicleFormattingTest {
 
-    private val tram10 = VehiclePosition(
-        vehicleId = "tram-v1",
-        routeId = "10",
-        tripId = "trip-10-1",
-        label = "10",
-        latitude = 51.7592,
-        longitude = 19.4560,
-        bearing = 90f,
-        speed = 20f,
-        timestamp = 1700000000L,
-        vehicleType = VehicleType.TRAM,
-        currentStatus = VehicleStatus.IN_TRANSIT_TO,
-        routeShortName = "10",
-        tripHeadsign = "Chocianowice IKEA",
-    )
+    private val tram10 =
+        VehiclePosition(
+            vehicleId = "tram-v1",
+            routeId = "10",
+            tripId = "trip-10-1",
+            label = "10",
+            latitude = 51.7592,
+            longitude = 19.4560,
+            bearing = 90f,
+            speed = 20f,
+            timestamp = 1700000000L,
+            vehicleType = VehicleType.TRAM,
+            currentStatus = VehicleStatus.IN_TRANSIT_TO,
+            routeShortName = "10",
+            tripHeadsign = "Chocianowice IKEA",
+        )
 
-    private val bus50 = tram10.copy(
-        vehicleId = "bus-v2",
-        routeId = "50",
-        label = "50",
-        vehicleType = VehicleType.BUS,
-        routeShortName = "50",
-        tripHeadsign = "Retkinia",
-    )
+    private val bus50 =
+        tram10.copy(
+            vehicleId = "bus-v2",
+            routeId = "50",
+            label = "50",
+            vehicleType = VehicleType.BUS,
+            routeShortName = "50",
+            tripHeadsign = "Retkinia",
+        )
 
     @Test
     fun title_tramWithHeadsign() {

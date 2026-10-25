@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.detekt)
 }
 
 val tomtomApiKey: String = findProperty("tomtomApiKey") as? String ?: ""
@@ -27,6 +29,25 @@ android {
     }
 }
 
+spotless {
+    // Spotless cannot infer Android source sets, so the target is set explicitly.
+    kotlin {
+        target("src/**/*.kt")
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    kotlinGradle {
+        target("*.gradle.kts")
+        ktfmt().kotlinlangStyle().configure { it.setMaxWidth(120) }
+    }
+}
+
+detekt {
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+}
+
 dependencies {
     implementation(project(":core"))
     implementation(platform(libs.androidx.compose.bom))
@@ -50,4 +71,5 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    detektPlugins(libs.detekt.compose.rules)
 }

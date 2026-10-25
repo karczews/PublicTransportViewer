@@ -14,8 +14,7 @@ import org.junit.Test
 
 class NavigationTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+    @get:Rule val composeRule = createComposeRule()
 
     private fun setApp(vararg sdks: MapSdk) {
         composeRule.setContent {

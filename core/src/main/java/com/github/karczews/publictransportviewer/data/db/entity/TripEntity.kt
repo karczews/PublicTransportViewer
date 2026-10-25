@@ -10,8 +10,7 @@ import androidx.room.PrimaryKey
     indices = [Index("route_id")],
 )
 data class TripEntity(
-    @PrimaryKey
-    @ColumnInfo(name = "trip_id") val tripId: String,
+    @PrimaryKey @ColumnInfo(name = "trip_id") val tripId: String,
     @ColumnInfo(name = "route_id") val routeId: String,
     @ColumnInfo(name = "service_id") val serviceId: String,
     @ColumnInfo(name = "trip_headsign") val tripHeadsign: String?,
