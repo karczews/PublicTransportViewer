@@ -8,6 +8,7 @@ import com.github.karczews.publictransportviewer.data.model.VehicleStatus
 import com.github.karczews.publictransportviewer.data.model.VehicleType
 import com.github.karczews.publictransportviewer.data.repository.RouteDisplayRepository
 import com.github.karczews.publictransportviewer.data.repository.VehicleRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -218,6 +219,71 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertEquals(2, viewModel.vehiclePositions.value.size)
     }
+
+    @Test
+    fun `selecting another vehicle clears previous route while new one loads`() = runTest {
+        fakeRouteDisplayRepo.routeData = mapOf(
+            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+            "T2" to RouteDisplayData("50", "50", 0, emptyList(), emptyList()),
+        )
+
+        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+
+        vehicleFlow.emit(listOf(tram(), bus()))
+        advanceUntilIdle()
+
+        viewModel.onVehicleSelected(tram())
+        advanceUntilIdle()
+        assertNotNull(viewModel.routeDisplay.value)
+
+        fakeRouteDisplayRepo.gate = CompletableDeferred()
+        viewModel.onVehicleSelected(bus())
+        advanceUntilIdle()
+
+        assertEquals("V2", viewModel.selectedVehicleId.value)
+        assertNull(viewModel.routeDisplay.value)
+
+        fakeRouteDisplayRepo.gate!!.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("50", viewModel.routeDisplay.value!!.routeShortName)
+    }
+
+    @Test
+    fun `route is not published when selection cleared during load`() = runTest {
+        fakeRouteDisplayRepo.routeData = mapOf(
+            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+        )
+        fakeRouteDisplayRepo.gate = CompletableDeferred()
+
+        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+
+        vehicleFlow.emit(listOf(tram()))
+        advanceUntilIdle()
+
+        viewModel.onVehicleSelected(tram())
+        advanceUntilIdle()
+        assertNull(viewModel.routeDisplay.value)
+
+        viewModel.clearSelection()
+        fakeRouteDisplayRepo.gate!!.complete(Unit)
+        advanceUntilIdle()
+
+        assertNull(viewModel.selectedVehicleId.value)
+        assertNull(viewModel.routeDisplay.value)
+    }
+
+    @Test
+    fun `visibleRouteDisplay hides route when vehicle left the feed`() {
+        val route = RouteDisplayData("10", "10", 0, emptyList(), emptyList())
+
+        assertNull(visibleRouteDisplay(null, listOf(tram()), "V1"))
+        assertNull(visibleRouteDisplay(route, listOf(tram()), null))
+        assertNull(visibleRouteDisplay(route, listOf(bus()), "V1"))
+        assertNull(visibleRouteDisplay(route, emptyList(), "V1"))
+
+        assertEquals(route, visibleRouteDisplay(route, listOf(tram(), bus()), "V1"))
+    }
 }
 
 private class FakeVehicleRepository(
@@ -228,6 +294,10 @@ private class FakeVehicleRepository(
 
 private class FakeRouteDisplayRepository : RouteDisplayRepository {
     var routeData: Map<String, RouteDisplayData> = emptyMap()
+    var gate: CompletableDeferred<Unit>? = null
 
-    override suspend fun loadRouteForTrip(tripId: String): RouteDisplayData? = routeData[tripId]
+    override suspend fun loadRouteForTrip(tripId: String): RouteDisplayData? {
+        gate?.await()
+        return routeData[tripId]
+    }
 }

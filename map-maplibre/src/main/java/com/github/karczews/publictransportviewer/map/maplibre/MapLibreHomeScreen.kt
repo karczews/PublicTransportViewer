@@ -30,6 +30,7 @@ import com.github.karczews.publictransportviewer.data.model.VehiclePosition
 import com.github.karczews.publictransportviewer.ui.home.HomeMapDefaults
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import com.github.karczews.publictransportviewer.ui.home.vehicleTitle
+import com.github.karczews.publictransportviewer.ui.home.visibleRouteDisplay
 import kotlinx.coroutines.launch
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraUpdate
@@ -97,7 +98,7 @@ internal fun MapLibreHomeScreen(
             zoom = HomeMapDefaults.INITIAL_ZOOM,
         ),
         content = {
-            routeDisplay?.let { RouteLayers(it) }
+            visibleRouteDisplay(routeDisplay, vehicles, selectedVehicleId)?.let { RouteLayers(it) }
             VehicleLayer(vehicles, onVehicleSelected = viewModel::onVehicleSelected)
             if (hasLocationPermission) {
                 LocationIndicatorLayer(id = "user_location", locationState = locationState)

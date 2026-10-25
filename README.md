@@ -48,9 +48,10 @@ relationships.
    ```properties
    tomtomApiKey=YOUR_API_KEY
    ```
-3. Build and run:
+3. Build and run (one command per map SDK flavor):
    ```bash
-   ./gradlew installDebug
+   ./gradlew installTomtomDebug    # "PTV TomTom"
+   ./gradlew installMaplibreDebug  # "PTV MapLibre"
    ```
 
 Requires Android SDK 32+ (Android 12L).
