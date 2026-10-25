@@ -78,11 +78,5 @@ dependencyAnalysis {
                 )
             }
         }
-        // - core unit tests import com.google.transit.realtime.GtfsRealtime directly.
-        project(":core") {
-            onUnusedDependencies {
-                exclude("org.mobilitydata:gtfs-realtime-bindings")
-            }
-        }
     }
 }

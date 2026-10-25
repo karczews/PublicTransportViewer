@@ -94,7 +94,6 @@ dependencies {
     implementation(libs.koin.annotations)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.gtfs.rt.bindings)
     androidTestImplementation(project(":core-testing"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

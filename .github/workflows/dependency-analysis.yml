@@ -16,7 +16,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      # Fails on unused dependencies and wrong scopes (e.g. debug code in `implementation`).
+      # Fails on unused dependencies and runtimeOnly/compileOnly mis-scoping.
       # Transitive-declaration and api-vs-implementation advice is warn-only (see the
       # `dependencyAnalysis` block in the root build.gradle.kts for why).
       - run: ./gradlew buildHealth -PtomtomApiKey=""

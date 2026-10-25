@@ -75,6 +75,7 @@ dependencies {
     androidTestImplementation(project(":core-testing"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.monitor)
     debugRuntimeOnly(libs.androidx.compose.ui.test.manifest)
     detektPlugins(libs.detekt.compose.rules)
 }

@@ -60,9 +60,10 @@ refactor(di): migrate from Hilt to Koin
 
 ## Dependency and schema checks
 
-CI runs four checks beyond tests/lint/build: an APK/AAB size report, dependency-guard
+CI runs three checks beyond tests/lint/build/quality: an APK/AAB size report, dependency-guard
 (transitive closure baselines in `*/dependencies/`), dependency-analysis (`buildHealth`:
-unused deps and wrong scopes fail), and a Room schema freshness check (`core/schemas/`).
+unused deps and runtimeOnly/compileOnly mis-scoping fail; transitive/api advice is warn-only),
+and a Room schema freshness check folded into the build job (`core/schemas/`).
 
 - Intentional dependency change trips dependency-guard: run
   `./gradlew dependencyGuardBaseline` and commit the updated baselines.

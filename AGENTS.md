@@ -13,7 +13,7 @@ Guidance for AI coding agents working in this repository.
 ./gradlew spotlessCheck          # ktfmt formatting check (kotlinlang style); run spotlessApply to fix
 ./gradlew detekt                 # detekt static analysis (core rules + compose-rules), config in config/detekt/detekt.yml
 ./gradlew dependencyGuard        # Fail on un-baselined transitive dependency changes (baselines in */dependencies/)
-./gradlew buildHealth            # Fail on unused deps / wrong scopes (warn-only: transitive/api advice)
+./gradlew buildHealth            # Fail on unused deps / runtimeOnly mis-scoping (transitive/api advice is warn-only)
 ./gradlew :core:assembleDebug    # Also regenerates Room schemas in core/schemas/ (must be committed)
 ./gradlew connectedAndroidTest   # Run instrumented tests on a connected device/emulator
 ./gradlew :core:testDebugUnitTest --tests "*.HomeViewModelTest"  # Run a single unit test class
