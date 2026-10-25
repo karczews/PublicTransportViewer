@@ -8,8 +8,9 @@ Guidance for AI coding agents working in this repository.
 ./gradlew assembleDebug          # Build debug APKs of every flavor
 ./gradlew installTomtomDebug     # Install the TomTom build ("PTV TomTom")
 ./gradlew installMaplibreDebug   # Install the MapLibre build ("PTV MapLibre")
+./gradlew installAllDebug        # Install the Compare build ("PTV Compare": every SDK + runtime toggle)
 ./gradlew test                   # Run unit tests
-./gradlew lintTomtomDebug lintMaplibreDebug  # Android lint, incl. library modules (no detekt/ktlint/spotless configured)
+./gradlew lintAllDebug           # Android lint, incl. all library modules (no detekt/ktlint/spotless configured)
 ./gradlew connectedAndroidTest   # Run instrumented tests on a connected device/emulator
 ./gradlew :core:testDebugUnitTest --tests "*.HomeViewModelTest"  # Run a single unit test class
 # Single instrumented test:
@@ -38,11 +39,11 @@ Feed URLs contain a hardcoded year/month path in `GtfsEndpoints` (currently `202
 
 Each map SDK implements `MapSdk` (`:core`, `map/MapSdk.kt`) and owns the **whole Home tab** — map, markers, location, permission flow, controls — so SDK-specific experiments stay inside that module. `MapSdkHost` awaits `MapSdk.initialize()` (showing a spinner in the Home tab) before rendering `MapSdk.HomeScreen`. `HomeMapDefaults` and `vehicleTitle`/`vehicleLabel`/`vehicleIconRes` in `:core` are optional shared helpers.
 
-`:app` has one product flavor per map SDK (dimension `mapSdk`: `tomtom`, `maplibre`); each flavor's `src/<flavor>/…/AvailableMapSdks.kt` lists the SDKs it ships and the flavor pulls in only that SDK's module. Flavors install side by side (`applicationIdSuffix`).
+`:app` has one product flavor per map SDK (dimension `mapSdk`: `tomtom`, `maplibre`) plus `all`; each flavor's `src/<flavor>/…/AvailableMapSdks.kt` lists the SDKs it ships and the flavor pulls in only those SDK modules. Flavors install side by side (`applicationIdSuffix`). With more than one SDK, `MapSdkHost` shows a top-center toggle (choice saved in SharedPreferences `map_sdk`) and `HomeViewModel.camera` hands the camera to the next SDK. Measure size/startup/memory with the single-SDK flavors; `all` is for look-and-feel only (an initialized SDK stays loaded for the process).
 
 **TomTom** (`:map-tomtom`) uses the TomTom Maps SDK Compose API (`map-display-compose-standard`, version `tomtomSdk` in the catalog). `TomTomMapSdk.initialize()` runs `TomTomSdk.initialize()`.
 
-Key composables: `TomTomMap` (map surface), `Marker` (vehicles/stops), `Polyline` (route shapes), `CurrentLocationMarker` (blue dot). The location provider lifecycle (`enable()`/`disable()`) must be managed manually in a `DisposableEffect`.
+Key composables: `TomTomMap` (map surface), `Marker` (vehicles/stops), `Polyline` (route shapes), `CurrentLocationMarker` (blue dot). The location provider lifecycle (`enable()`/`disable()`) must be managed manually in a `DisposableEffect`. `rememberMapViewState` keeps its state in a ViewModel of `LocalViewModelStoreOwner`; `TomTomHomeScreen` therefore gives each showing its own `ViewModelStore` (cleared on dispose), otherwise a re-shown screen reuses the old map state and ignores its initial camera (the SDK-switch handoff).
 
 **MapLibre** (`:map-maplibre`) uses maplibre-compose (pre-1.0; the public docs lag the API — read the `maplibre-compose-android` sources jar for the pinned version) with the Maptoolkit `summer.json` style. Every `SymbolLayer` sets `textFont` to a font the style's glyph server serves (Noto Sans / Rosario); maplibre-compose's default font stack 404s there and labels silently disappear. Maptoolkit attribution is mandatory: its logo (≥ 24dp, bottom-start, links to maptoolkit.org) and the attribution button must stay visible and uncovered. The OpenGL/Vulkan render backend is a single `runtimeOnly` line, documented in `map-maplibre/build.gradle.kts`. Instrumented tests use `androidx.compose.ui.test.junit4.v2.createComposeRule` — the v1 rule's unconfined dispatcher trips maplibre-compose's main-thread guard.
 

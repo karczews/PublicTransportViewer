@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -27,12 +29,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.github.karczews.publictransportviewer.core.R as CoreR
 import com.github.karczews.publictransportviewer.data.model.RouteDisplayData
 import com.github.karczews.publictransportviewer.data.model.RouteStop
 import com.github.karczews.publictransportviewer.data.model.VehiclePosition
 import com.github.karczews.publictransportviewer.ui.home.HomeMapDefaults
+import com.github.karczews.publictransportviewer.ui.home.MapCamera
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import com.github.karczews.publictransportviewer.ui.home.vehicleIconRes
 import com.github.karczews.publictransportviewer.ui.home.vehicleLabel
@@ -59,6 +65,8 @@ import com.tomtom.sdk.map.display.compose.state.rememberMarkerState
 import com.tomtom.sdk.map.display.compose.state.rememberPolylineState
 import com.tomtom.sdk.map.display.image.ImageFactory
 import com.tomtom.sdk.map.display.marker.Label
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 private val LODZ_CENTER = GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longitude = HomeMapDefaults.CENTER_LON)
@@ -68,11 +76,43 @@ fun TomTomHomeScreen(
     viewModel: HomeViewModel,
     modifier: Modifier = Modifier,
 ) {
+    CompositionLocalProvider(LocalViewModelStoreOwner provides rememberScreenViewModelStoreOwner()) {
+        TomTomHomeContent(viewModel, modifier)
+    }
+}
+
+/**
+ * TomTom's rememberMapViewState keeps the map state in a ViewModel of LocalViewModelStoreOwner (the
+ * Activity), so a re-shown screen (e.g. after switching map SDK) would get the old state and ignore
+ * its initial camera. Each showing gets its own store, cleared when the screen leaves composition;
+ * the camera survives through HomeViewModel.camera instead.
+ */
+@Composable
+private fun rememberScreenViewModelStoreOwner(): ViewModelStoreOwner {
+    val owner = remember {
+        object : ViewModelStoreOwner {
+            override val viewModelStore = ViewModelStore()
+        }
+    }
+    DisposableEffect(owner) {
+        onDispose { owner.viewModelStore.clear() }
+    }
+    return owner
+}
+
+@Composable
+private fun TomTomHomeContent(
+    viewModel: HomeViewModel,
+    modifier: Modifier,
+) {
     val vehicles by viewModel.vehiclePositions.collectAsStateWithLifecycle()
     val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
     val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
 
-    val initialCameraOptions = InitialCameraOptions.LocationBased(
+    // Start where the previous SDK's map left off (camera handoff), else at the shared defaults.
+    val initialCameraOptions = viewModel.camera.value?.let {
+        InitialCameraOptions.LocationBased(position = GeoPoint(it.lat, it.lon), zoom = it.zoom)
+    } ?: InitialCameraOptions.LocationBased(
         position = LODZ_CENTER,
         zoom = HomeMapDefaults.INITIAL_ZOOM,
     )
@@ -86,6 +126,16 @@ fun TomTomHomeScreen(
         }
     }
     val mapViewState = rememberMapViewState(initialCameraOptions = initialCameraOptions)
+    LaunchedEffect(mapViewState) {
+        snapshotFlow { mapViewState.cameraState.data }
+            .filterNotNull()
+            .filter { it.isStable }
+            .collect {
+                viewModel.onCameraChanged(
+                    MapCamera(it.position.position.latitude, it.position.position.longitude, it.position.zoom),
+                )
+            }
+    }
     val coroutineScope = rememberCoroutineScope()
     val locationProvider = remember { TomTomSdk.locationProvider }
     val context = LocalContext.current
@@ -175,8 +225,10 @@ private fun VehicleMarker(
 ) {
     val markerState = rememberMarkerState()
     LaunchedEffect(isSelected) {
-        if (!isSelected && markerState.isSelected()) {
-            markerState.deselect()
+        when (markerSelectionChange(isSelected, markerState.isSelected())) {
+            MarkerSelectionChange.SELECT -> markerState.select()
+            MarkerSelectionChange.DESELECT -> markerState.deselect()
+            null -> Unit
         }
     }
     Marker(
@@ -196,10 +248,8 @@ private fun VehicleMarker(
             balloonText = vehicleTitle(vehicle)
         },
         state = markerState,
-        onClick = {
-            if (markerState.isSelected()) markerState.deselect() else markerState.select()
-            onSelect()
-        },
+        // The view model toggles the selection; the effect above mirrors it onto the marker.
+        onClick = onSelect,
     )
 }
 
