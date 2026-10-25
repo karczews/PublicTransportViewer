@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -64,6 +65,10 @@ fun MapSdkHost(
                             preference.save(option.id)
                         },
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = mapSdks.size),
+                        // Opaque, so the unselected label stays readable over the map.
+                        colors = SegmentedButtonDefaults.colors(
+                            inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        ),
                         modifier = Modifier.testTag("map_sdk_option_${option.id}"),
                     ) {
                         Text(option.displayName)
