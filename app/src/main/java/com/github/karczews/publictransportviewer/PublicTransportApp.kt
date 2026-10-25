@@ -7,7 +7,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.github.karczews.publictransportviewer.data.source.GtfsStaticDataSource
 import com.github.karczews.publictransportviewer.data.worker.GtfsRefreshWorker
-import com.github.karczews.publictransportviewer.di.AppModule
+import com.github.karczews.publictransportviewer.di.CoreModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,10 +22,10 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Aggregator type for the Koin compiler plugin: declares which annotated modules make up the
- * application graph. `startKoin<PublicTransportKoinConfiguration>()` loads [AppModule] and triggers
+ * application graph. `startKoin<PublicTransportKoinConfiguration>()` loads [CoreModule] and triggers
  * the compile-time full-graph safety check.
  */
-@KoinApplication(modules = [AppModule::class])
+@KoinApplication(modules = [CoreModule::class])
 internal object PublicTransportKoinConfiguration
 
 class PublicTransportApp : Application() {

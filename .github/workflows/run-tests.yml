@@ -22,5 +22,5 @@ jobs:
         if: failure()
         with:
           name: unit-test-results
-          path: app/build/reports/tests/
+          path: '*/build/reports/tests/'
           retention-days: 7

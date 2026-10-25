@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.github.karczews.publictransportviewer.core.R
 import com.github.karczews.publictransportviewer.ui.alerts.AlertsScreen
 import com.github.karczews.publictransportviewer.ui.alerts.AlertsViewModel
 import com.github.karczews.publictransportviewer.ui.home.HomeScreen
