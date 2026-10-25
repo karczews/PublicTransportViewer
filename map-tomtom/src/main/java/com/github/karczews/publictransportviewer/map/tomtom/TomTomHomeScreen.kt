@@ -64,244 +64,253 @@ import com.tomtom.sdk.map.display.marker.Label
 import kotlinx.coroutines.launch
 
 private val LODZ_CENTER =
-  GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longitude = HomeMapDefaults.CENTER_LON)
+    GeoPoint(latitude = HomeMapDefaults.CENTER_LAT, longitude = HomeMapDefaults.CENTER_LON)
 
 // Route line widths per zoom level, mirroring the MapLibre casing + line pair.
 private val ROUTE_LINE_WIDTHS =
-  listOf(
-    WidthByZoom(6.0, 10.0),
-    WidthByZoom(10.0, 14.0),
-    WidthByZoom(14.0, 18.0),
-  )
+    listOf(
+        WidthByZoom(6.0, 10.0),
+        WidthByZoom(10.0, 14.0),
+        WidthByZoom(14.0, 18.0),
+    )
 private const val ROUTE_OUTLINE_ALPHA = 100
 
 @Composable
 fun TomTomHomeScreen(
-  viewModel: HomeViewModel,
-  modifier: Modifier = Modifier,
+    viewModel: HomeViewModel,
+    modifier: Modifier = Modifier,
 ) {
-  val vehicles by viewModel.vehiclePositions.collectAsStateWithLifecycle()
-  val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
-  val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
+    val vehicles by viewModel.vehiclePositions.collectAsStateWithLifecycle()
+    val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
+    val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
 
-  val initialCameraOptions =
-    InitialCameraOptions.LocationBased(
-      position = LODZ_CENTER,
-      zoom = HomeMapDefaults.INITIAL_ZOOM,
-    )
-  val mapDisplayInfrastructure = remember {
-    MapDisplayInfrastructure(
-      sdkContext = TomTomSdk.sdkContext,
-    ) {
-      locationInfrastructure = MapLocationInfrastructure {
-        locationProvider = TomTomSdk.locationProvider
-      }
-    }
-  }
-  val mapViewState = rememberMapViewState(initialCameraOptions = initialCameraOptions)
-  val coroutineScope = rememberCoroutineScope()
-  val locationProvider = remember { TomTomSdk.locationProvider }
-  val (hasLocationPermission, requestPermission) = rememberLocationPermission()
-
-  Box(modifier = modifier.fillMaxSize()) {
-    TomTomMap(
-      state = mapViewState,
-      infrastructure = mapDisplayInfrastructure,
-      modifier = Modifier.fillMaxSize(),
-      onMapClick = { viewModel.clearSelection() },
-    ) {
-      if (hasLocationPermission) {
-        CurrentLocationMarker(
-          properties = CurrentLocationMarkerProperties(),
-          state = rememberCurrentLocationMarkerState(),
+    val initialCameraOptions =
+        InitialCameraOptions.LocationBased(
+            position = LODZ_CENTER,
+            zoom = HomeMapDefaults.INITIAL_ZOOM,
         )
-      }
+    val mapDisplayInfrastructure = rememberMapInfrastructure()
+    val mapViewState = rememberMapViewState(initialCameraOptions = initialCameraOptions)
+    val coroutineScope = rememberCoroutineScope()
+    val locationProvider = remember { TomTomSdk.locationProvider }
+    val (hasLocationPermission, requestPermission) = rememberLocationPermission()
 
-      visibleRouteDisplay(routeDisplay, vehicles, selectedVehicleId)?.let { route ->
-        RouteOverlay(route = route)
-      }
+    Box(modifier = modifier.fillMaxSize()) {
+        TomTomMap(
+            state = mapViewState,
+            infrastructure = mapDisplayInfrastructure,
+            modifier = Modifier.fillMaxSize(),
+            onMapClick = { viewModel.clearSelection() },
+        ) {
+            if (hasLocationPermission) {
+                CurrentLocationMarker(
+                    properties = CurrentLocationMarkerProperties(),
+                    state = rememberCurrentLocationMarkerState(),
+                )
+            }
 
-      VehicleMarkers(
-        vehicles = vehicles,
-        selectedVehicleId = selectedVehicleId,
-        onSelect = viewModel::onVehicleSelected,
-      )
-    }
+            visibleRouteDisplay(routeDisplay, vehicles, selectedVehicleId)?.let { route ->
+                RouteOverlay(route = route)
+            }
 
-    RecenterButton(
-      hasLocationPermission = hasLocationPermission,
-      onRequestPermission = requestPermission,
-      onRecenter = {
-        locationProvider.lastKnownLocation?.let { location ->
-          coroutineScope.launch {
-            mapViewState.cameraState.animateCamera(
-              CameraOptions(position = location.position, zoom = HomeMapDefaults.RECENTER_ZOOM),
+            VehicleMarkers(
+                vehicles = vehicles,
+                selectedVehicleId = selectedVehicleId,
+                onSelect = viewModel::onVehicleSelected,
             )
-          }
         }
-      },
-    )
-  }
+
+        RecenterButton(
+            hasLocationPermission = hasLocationPermission,
+            onRequestPermission = requestPermission,
+            onRecenter = {
+                locationProvider.lastKnownLocation?.let { location ->
+                    coroutineScope.launch {
+                        mapViewState.cameraState.animateCamera(
+                            CameraOptions(
+                                position = location.position,
+                                zoom = HomeMapDefaults.RECENTER_ZOOM,
+                            ),
+                        )
+                    }
+                }
+            },
+        )
+    }
 }
 
 @Composable
 private fun BoxScope.RecenterButton(
-  hasLocationPermission: Boolean,
-  onRequestPermission: () -> Unit,
-  onRecenter: () -> Unit,
+    hasLocationPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    onRecenter: () -> Unit,
 ) {
-  FilledTonalIconButton(
-    onClick = {
-      if (!hasLocationPermission) {
-        onRequestPermission()
-        return@FilledTonalIconButton
-      }
-      onRecenter()
-    },
-    modifier =
-      Modifier.align(Alignment.BottomEnd).padding(16.dp).size(48.dp).testTag("recenter_button"),
-  ) {
-    Icon(
-      painter = painterResource(CoreR.drawable.ic_my_location),
-      contentDescription = "Recenter to my location",
-    )
-  }
+    FilledTonalIconButton(
+        onClick = {
+            if (!hasLocationPermission) {
+                onRequestPermission()
+                return@FilledTonalIconButton
+            }
+            onRecenter()
+        },
+        modifier =
+            Modifier.align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .size(48.dp)
+                .testTag("recenter_button"),
+    ) {
+        Icon(
+            painter = painterResource(CoreR.drawable.ic_my_location),
+            contentDescription = "Recenter to my location",
+        )
+    }
+}
+
+@Composable
+private fun rememberMapInfrastructure(): MapDisplayInfrastructure = remember {
+    MapDisplayInfrastructure(
+        sdkContext = TomTomSdk.sdkContext,
+    ) {
+        locationInfrastructure = MapLocationInfrastructure {
+            locationProvider = TomTomSdk.locationProvider
+        }
+    }
 }
 
 @Composable
 private fun rememberLocationPermission(): Pair<Boolean, () -> Unit> {
-  val context = LocalContext.current
-  var granted by remember {
-    mutableStateOf(
-      ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-        PackageManager.PERMISSION_GRANTED,
-    )
-  }
-  val launcher =
-    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-      granted = it
+    val context = LocalContext.current
+    var granted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED,
+        )
     }
-  DisposableEffect(granted) {
-    if (granted) {
-      TomTomSdk.locationProvider.enable()
-      onDispose { TomTomSdk.locationProvider.disable() }
-    } else {
-      onDispose {}
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            granted = it
+        }
+    DisposableEffect(granted) {
+        if (granted) {
+            TomTomSdk.locationProvider.enable()
+            onDispose { TomTomSdk.locationProvider.disable() }
+        } else {
+            onDispose {}
+        }
     }
-  }
-  return granted to { launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
+    return granted to { launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
 }
 
 @Composable
 private fun VehicleMarkers(
-  vehicles: List<VehiclePosition>,
-  selectedVehicleId: String?,
-  onSelect: (VehiclePosition) -> Unit,
+    vehicles: List<VehiclePosition>,
+    selectedVehicleId: String?,
+    onSelect: (VehiclePosition) -> Unit,
 ) {
-  vehicles.forEach { vehicle ->
-    key(vehicle.vehicleId) {
-      VehicleMarker(
-        vehicle = vehicle,
-        isSelected = vehicle.vehicleId == selectedVehicleId,
-        onSelect = { onSelect(vehicle) },
-      )
+    vehicles.forEach { vehicle ->
+        key(vehicle.vehicleId) {
+            VehicleMarker(
+                vehicle = vehicle,
+                isSelected = vehicle.vehicleId == selectedVehicleId,
+                onSelect = { onSelect(vehicle) },
+            )
+        }
     }
-  }
 }
 
 @Composable
 private fun VehicleMarker(
-  vehicle: VehiclePosition,
-  isSelected: Boolean,
-  onSelect: () -> Unit,
+    vehicle: VehiclePosition,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
 ) {
-  val markerState = rememberMarkerState()
-  LaunchedEffect(isSelected) {
-    if (!isSelected && markerState.isSelected()) {
-      markerState.deselect()
+    val markerState = rememberMarkerState()
+    LaunchedEffect(isSelected) {
+        if (!isSelected && markerState.isSelected()) {
+            markerState.deselect()
+        }
     }
-  }
-  Marker(
-    data =
-      MarkerData(
-        geoPoint = GeoPoint(vehicle.latitude, vehicle.longitude),
-      ),
-    properties =
-      MarkerProperties(
-        pinImage = ImageFactory.fromResource(vehicleIconRes(vehicle.vehicleType)),
-      ) {
-        label =
-          Label(
-            text = vehicleLabel(vehicle),
-            textColor = Color.WHITE,
-            textSize = 12.0,
-            outlineColor = Color.BLACK,
-            outlineWidth = 2.0,
-          )
-        balloonText = vehicleTitle(vehicle)
-      },
-    state = markerState,
-    onClick = {
-      if (markerState.isSelected()) markerState.deselect() else markerState.select()
-      onSelect()
-    },
-  )
+    Marker(
+        data =
+            MarkerData(
+                geoPoint = GeoPoint(vehicle.latitude, vehicle.longitude),
+            ),
+        properties =
+            MarkerProperties(
+                pinImage = ImageFactory.fromResource(vehicleIconRes(vehicle.vehicleType)),
+            ) {
+                label =
+                    Label(
+                        text = vehicleLabel(vehicle),
+                        textColor = Color.WHITE,
+                        textSize = 12.0,
+                        outlineColor = Color.BLACK,
+                        outlineWidth = 2.0,
+                    )
+                balloonText = vehicleTitle(vehicle)
+            },
+        state = markerState,
+        onClick = {
+            if (markerState.isSelected()) markerState.deselect() else markerState.select()
+            onSelect()
+        },
+    )
 }
 
 @Composable
 private fun RouteOverlay(route: RouteDisplayData) {
-  if (route.polylinePoints.isNotEmpty()) {
-    val geoPoints =
-      remember(route.routeId) {
-        route.polylinePoints.map { GeoPoint(it.lat, it.lon) }
-      }
-    Polyline(
-      data =
-        PolylineData(geoPoints = geoPoints) {
-          tag = "route_${route.routeId}"
-        },
-      properties =
-        PolylineProperties {
-          lineColor = route.routeColor
-          lineWidths = ROUTE_LINE_WIDTHS
-          outlineColor = Color.argb(ROUTE_OUTLINE_ALPHA, 0, 0, 0)
-          outlineWidths = listOf(WidthByZoom(2.0))
-        },
-      state = rememberPolylineState(),
-    )
-  }
-
-  route.stops.forEach { stop ->
-    key("stop_${stop.stopId}") {
-      StopMarker(stop = stop)
+    if (route.polylinePoints.isNotEmpty()) {
+        val geoPoints =
+            remember(route.routeId) {
+                route.polylinePoints.map { GeoPoint(it.lat, it.lon) }
+            }
+        Polyline(
+            data =
+                PolylineData(geoPoints = geoPoints) {
+                    tag = "route_${route.routeId}"
+                },
+            properties =
+                PolylineProperties {
+                    lineColor = route.routeColor
+                    lineWidths = ROUTE_LINE_WIDTHS
+                    outlineColor = Color.argb(ROUTE_OUTLINE_ALPHA, 0, 0, 0)
+                    outlineWidths = listOf(WidthByZoom(2.0))
+                },
+            state = rememberPolylineState(),
+        )
     }
-  }
+
+    route.stops.forEach { stop ->
+        key("stop_${stop.stopId}") {
+            StopMarker(stop = stop)
+        }
+    }
 }
 
 @Composable
 private fun StopMarker(stop: RouteStop) {
-  Marker(
-    data =
-      MarkerData(
-        geoPoint = GeoPoint(stop.lat, stop.lon),
-      ),
-    properties =
-      MarkerProperties(
-        pinImage = ImageFactory.fromResource(CoreR.drawable.ic_stop_dot),
-      ) {
-        label =
-          Label(
-            text = stop.stopName,
-            textColor = Color.DKGRAY,
-            textSize = 10.0,
-            outlineColor = Color.WHITE,
-            outlineWidth = 1.0,
-          )
-        balloonText = stop.stopName
-      },
-    state = rememberMarkerState(),
-    onClick = {
-      // no-op for now
-    },
-  )
+    Marker(
+        data =
+            MarkerData(
+                geoPoint = GeoPoint(stop.lat, stop.lon),
+            ),
+        properties =
+            MarkerProperties(
+                pinImage = ImageFactory.fromResource(CoreR.drawable.ic_stop_dot),
+            ) {
+                label =
+                    Label(
+                        text = stop.stopName,
+                        textColor = Color.DKGRAY,
+                        textSize = 10.0,
+                        outlineColor = Color.WHITE,
+                        outlineWidth = 1.0,
+                    )
+                balloonText = stop.stopName
+            },
+        state = rememberMarkerState(),
+        onClick = {
+            // no-op for now
+        },
+    )
 }

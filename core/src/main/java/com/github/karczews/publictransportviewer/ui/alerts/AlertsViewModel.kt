@@ -13,24 +13,24 @@ import org.koin.core.annotation.KoinViewModel
 
 @KoinViewModel
 class AlertsViewModel(
-  private val repository: AlertRepository,
+    private val repository: AlertRepository,
 ) : ViewModel() {
 
-  private val _alerts = MutableStateFlow<List<ServiceAlert>>(emptyList())
-  val alerts: StateFlow<List<ServiceAlert>> = _alerts.asStateFlow()
+    private val _alerts = MutableStateFlow<List<ServiceAlert>>(emptyList())
+    val alerts: StateFlow<List<ServiceAlert>> = _alerts.asStateFlow()
 
-  private val _isLoading = MutableStateFlow(true)
-  val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-  init {
-    viewModelScope.launch {
-      repository
-        .observeAlerts()
-        .catch { /* keep last known */ }
-        .collect { alerts ->
-          _alerts.value = alerts
-          _isLoading.value = false
+    init {
+        viewModelScope.launch {
+            repository
+                .observeAlerts()
+                .catch { /* keep last known */ }
+                .collect { alerts ->
+                    _alerts.value = alerts
+                    _isLoading.value = false
+                }
         }
     }
-  }
 }

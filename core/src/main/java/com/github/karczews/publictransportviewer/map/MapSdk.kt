@@ -10,15 +10,15 @@ import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
  * location, permission flow and controls. Everything outside the Home tab is shared.
  */
 interface MapSdk {
-  /** Stable identifier, persisted by the SDK toggle: "tomtom", "maplibre". */
-  val id: String
+    /** Stable identifier, persisted by the SDK toggle: "tomtom", "maplibre". */
+    val id: String
 
-  /** Label shown in the SDK toggle. */
-  val displayName: String
+    /** Label shown in the SDK toggle. */
+    val displayName: String
 
-  /** Idempotent SDK start-up. Awaited by the Home-tab host before the first [HomeScreen]. */
-  suspend fun initialize(context: Context) {}
+    /** Idempotent SDK start-up. Awaited by the Home-tab host before the first [HomeScreen]. */
+    suspend fun initialize(context: Context) {}
 
-  /** The whole Home tab for this SDK. */
-  @Composable fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier)
+    /** The whole Home tab for this SDK. */
+    @Composable fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier)
 }

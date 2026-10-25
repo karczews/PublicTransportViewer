@@ -61,6 +61,7 @@ import org.maplibre.compose.location.SystemSettingsLauncher
 import org.maplibre.compose.location.rememberDefaultLocationProvider
 import org.maplibre.compose.location.rememberLocationState
 import org.maplibre.compose.location.rememberSystemSettingsLauncher
+import org.maplibre.compose.map.MapState
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.overlay.ExpandingAttributionButton
@@ -91,229 +92,255 @@ private val ROUTE_CASING_COLOR = Color(0x64000000)
  */
 @Composable
 internal fun MapLibreHomeScreen(
-  viewModel: HomeViewModel,
-  styleUrl: String,
-  modifier: Modifier = Modifier,
+    viewModel: HomeViewModel,
+    styleUrl: String,
+    modifier: Modifier = Modifier,
 ) {
-  val vehicles by viewModel.vehiclePositions.collectAsStateWithLifecycle()
-  val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
-  val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
-  val locationState = rememberLocationState(provider = rememberDefaultLocationProvider())
-  val hasLocationPermission = locationState.permission is LocationPermission.Granted
+    val vehicles by viewModel.vehiclePositions.collectAsStateWithLifecycle()
+    val selectedVehicleId by viewModel.selectedVehicleId.collectAsStateWithLifecycle()
+    val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
+    val locationState = rememberLocationState(provider = rememberDefaultLocationProvider())
+    val hasLocationPermission = locationState.permission is LocationPermission.Granted
 
-  val mapState =
-    rememberMapState(
-      baseStyle = BaseStyle.Uri(styleUrl),
-      initialCameraPosition =
-        CameraPosition(
-          center =
-            Position(longitude = HomeMapDefaults.CENTER_LON, latitude = HomeMapDefaults.CENTER_LAT),
-          zoom = HomeMapDefaults.INITIAL_ZOOM,
-        ),
-      content = {
-        visibleRouteDisplay(routeDisplay, vehicles, selectedVehicleId)?.let { RouteLayers(it) }
-        VehicleLayer(vehicles, onVehicleSelected = viewModel::onVehicleSelected)
-        if (hasLocationPermission) {
-          LocationIndicatorLayer(id = "user_location", locationState = locationState)
+    val mapState =
+        rememberHomeMapState(
+            styleUrl = styleUrl,
+            routeDisplay = routeDisplay,
+            vehicles = vehicles,
+            selectedVehicleId = selectedVehicleId,
+            hasLocationPermission = hasLocationPermission,
+            locationState = locationState,
+            onSelect = viewModel::onVehicleSelected,
+        )
+    val uriHandler = LocalUriHandler.current
+    val coroutineScope = rememberCoroutineScope()
+    val settingsLauncher = rememberSystemSettingsLauncher()
+
+    Box(modifier.fillMaxSize()) {
+        MaplibreMap(
+            modifier = Modifier.fillMaxSize(),
+            state = mapState,
+            interactions =
+                MapInteractions {
+                    callbacks {
+                        click {
+                            onUnhandled {
+                                viewModel.clearSelection()
+                                ClickResult.Consume
+                            }
+                        }
+                    }
+                },
+            overlay = { AttributionOverlay(uriHandler) },
+        )
+
+        selectedVehicle(vehicles, selectedVehicleId)?.let { vehicle ->
+            SelectedVehicleCard(vehicle)
         }
-      },
-    )
-  val uriHandler = LocalUriHandler.current
-  val coroutineScope = rememberCoroutineScope()
-  val settingsLauncher = rememberSystemSettingsLauncher()
 
-  Box(modifier.fillMaxSize()) {
-    MaplibreMap(
-      modifier = Modifier.fillMaxSize(),
-      state = mapState,
-      interactions =
-        MapInteractions {
-          callbacks {
-            click {
-              onUnhandled {
-                viewModel.clearSelection()
-                ClickResult.Consume
-              }
-            }
-          }
-        },
-      overlay = { AttributionOverlay(uriHandler) },
-    )
-
-    selectedVehicle(vehicles, selectedVehicleId)?.let { vehicle ->
-      SelectedVehicleCard(vehicle)
+        RecenterButton(
+            hasLocationPermission = hasLocationPermission,
+            locationState = locationState,
+            settingsLauncher = settingsLauncher,
+            onRecenter = { position ->
+                coroutineScope.launch {
+                    mapState.animateCamera(
+                        CameraUpdate(center = position, zoom = HomeMapDefaults.RECENTER_ZOOM),
+                    )
+                }
+            },
+        )
     }
-
-    RecenterButton(
-      hasLocationPermission = hasLocationPermission,
-      locationState = locationState,
-      settingsLauncher = settingsLauncher,
-      onRecenter = { position ->
-        coroutineScope.launch {
-          mapState.animateCamera(
-            CameraUpdate(center = position, zoom = HomeMapDefaults.RECENTER_ZOOM),
-          )
-        }
-      },
-    )
-  }
 }
 
 @Composable
 private fun AttributionOverlay(uriHandler: UriHandler) {
-  Box(Modifier.fillMaxSize().safeDrawingPadding().padding(8.dp)) {
-    Image(
-      painter = painterResource(R.drawable.maptoolkit_attribution),
-      contentDescription = "Maptoolkit",
-      modifier =
-        Modifier.align(Alignment.BottomStart).height(24.dp).testTag("maptoolkit_logo").clickable {
-          uriHandler.openUri(MAPTOOLKIT_URL)
-        },
-    )
-    ExpandingAttributionButton(Modifier.align(Alignment.BottomEnd))
-  }
+    Box(Modifier.fillMaxSize().safeDrawingPadding().padding(8.dp)) {
+        Image(
+            painter = painterResource(R.drawable.maptoolkit_attribution),
+            contentDescription = "Maptoolkit",
+            modifier =
+                Modifier.align(Alignment.BottomStart)
+                    .height(24.dp)
+                    .testTag("maptoolkit_logo")
+                    .clickable {
+                        uriHandler.openUri(MAPTOOLKIT_URL)
+                    },
+        )
+        ExpandingAttributionButton(Modifier.align(Alignment.BottomEnd))
+    }
 }
 
 @Composable
 private fun BoxScope.SelectedVehicleCard(vehicle: VehiclePosition) {
-  ElevatedCard(
-    Modifier.align(Alignment.BottomCenter)
-      .safeDrawingPadding()
-      // 112dp clears the 48dp recenter button sitting 56dp above the bottom edge,
-      // so a wide card on a narrow screen doesn't slide under it.
-      .padding(bottom = 112.dp)
-      .testTag("vehicle_info_card"),
-  ) {
-    Text(vehicleTitle(vehicle), Modifier.padding(12.dp))
-  }
+    ElevatedCard(
+        Modifier.align(Alignment.BottomCenter)
+            .safeDrawingPadding()
+            // 112dp clears the 48dp recenter button sitting 56dp above the bottom edge,
+            // so a wide card on a narrow screen doesn't slide under it.
+            .padding(bottom = 112.dp)
+            .testTag("vehicle_info_card"),
+    ) {
+        Text(vehicleTitle(vehicle), Modifier.padding(12.dp))
+    }
 }
 
 @Composable
 private fun BoxScope.RecenterButton(
-  hasLocationPermission: Boolean,
-  locationState: LocationState,
-  settingsLauncher: SystemSettingsLauncher,
-  onRecenter: (Position) -> Unit,
+    hasLocationPermission: Boolean,
+    locationState: LocationState,
+    settingsLauncher: SystemSettingsLauncher,
+    onRecenter: (Position) -> Unit,
 ) {
-  FilledTonalIconButton(
-    onClick = {
-      if (!hasLocationPermission) {
-        val permission = locationState.permission
-        if (permission is LocationPermission.NotGranted && permission.canRequest == false) {
-          settingsLauncher.openApplicationSettings()
-        } else {
-          locationState.requestPermission()
-        }
-        return@FilledTonalIconButton
-      }
-      locationState.lastLocation?.let { location ->
-        onRecenter(location.position)
-      }
-    },
-    modifier =
-      Modifier.align(Alignment.BottomEnd)
-        .safeDrawingPadding()
-        // 56dp clears the attribution button below.
-        .padding(end = 16.dp, bottom = 56.dp)
-        .size(48.dp)
-        .testTag("recenter_button"),
-  ) {
-    Icon(
-      painter = painterResource(CoreR.drawable.ic_my_location),
-      contentDescription = "Recenter to my location",
-    )
-  }
+    FilledTonalIconButton(
+        onClick = {
+            if (!hasLocationPermission) {
+                val permission = locationState.permission
+                if (permission is LocationPermission.NotGranted && permission.canRequest == false) {
+                    settingsLauncher.openApplicationSettings()
+                } else {
+                    locationState.requestPermission()
+                }
+                return@FilledTonalIconButton
+            }
+            locationState.lastLocation?.let { location ->
+                onRecenter(location.position)
+            }
+        },
+        modifier =
+            Modifier.align(Alignment.BottomEnd)
+                .safeDrawingPadding()
+                // 56dp clears the attribution button below.
+                .padding(end = 16.dp, bottom = 56.dp)
+                .size(48.dp)
+                .testTag("recenter_button"),
+    ) {
+        Icon(
+            painter = painterResource(CoreR.drawable.ic_my_location),
+            contentDescription = "Recenter to my location",
+        )
+    }
 }
 
 @Composable
-private fun RouteLayers(route: RouteDisplayData) {
-  routeLine(route)?.let { line ->
-    val lineSource = rememberGeoJsonSource(GeoJsonData.Features(line))
-    // Casing = line widths + 2dp each side, like TomTom's outlineWidths = WidthByZoom(2.0).
-    LineLayer(
-      id = "route-casing",
-      source = lineSource,
-      color = const(ROUTE_CASING_COLOR),
-      width =
-        interpolate(
-          linear(),
-          zoom(),
-          ZOOM_FAR to const(10.dp),
-          ZOOM_MID to const(14.dp),
-          ZOOM_NEAR to const(18.dp),
-        ),
+private fun rememberHomeMapState(
+    styleUrl: String,
+    routeDisplay: RouteDisplayData?,
+    vehicles: List<VehiclePosition>,
+    selectedVehicleId: String?,
+    hasLocationPermission: Boolean,
+    locationState: LocationState,
+    onSelect: (VehiclePosition) -> Unit,
+): MapState =
+    rememberMapState(
+        baseStyle = BaseStyle.Uri(styleUrl),
+        initialCameraPosition =
+            CameraPosition(
+                center =
+                    Position(
+                        longitude = HomeMapDefaults.CENTER_LON,
+                        latitude = HomeMapDefaults.CENTER_LAT,
+                    ),
+                zoom = HomeMapDefaults.INITIAL_ZOOM,
+            ),
+        content = {
+            visibleRouteDisplay(routeDisplay, vehicles, selectedVehicleId)?.let { RouteLayers(it) }
+            VehicleLayer(vehicles, onVehicleSelected = onSelect)
+            if (hasLocationPermission) {
+                LocationIndicatorLayer(id = "user_location", locationState = locationState)
+            }
+        },
     )
-    LineLayer(
-      id = "route-line",
-      source = lineSource,
-      color = const(Color(route.routeColor)),
-      width =
-        interpolate(
-          linear(),
-          zoom(),
-          ZOOM_FAR to const(6.dp),
-          ZOOM_MID to const(10.dp),
-          ZOOM_NEAR to const(14.dp),
-        ),
-    )
-  }
 
-  val stopSource = rememberGeoJsonSource(GeoJsonData.Features(routeStopFeatures(route)))
-  // Stops must stay visible next to vehicles and each other in dense areas (TomTom shows every
-  // stop marker): icons ignore collision, and a colliding label may drop while its dot stays.
-  SymbolLayer(
-    id = "route-stops",
-    source = stopSource,
-    iconImage = image(painterResource(CoreR.drawable.ic_stop_dot)),
-    iconAllowOverlap = const(true),
-    textField = format(span(feature["name"].asString())),
-    textFont = LABEL_FONT,
-    textColor = const(Color.DarkGray),
-    textHaloColor = const(Color.White),
-    textHaloWidth = const(1.dp),
-    textSize = const(10.sp),
-    textAnchor = const(SymbolAnchor.Top),
-    textOffset = textOffset(0f.em, 0.8f.em),
-    textOptional = const(true),
-    // A stop tap keeps the selection (TomTom's stop click is a no-op too).
-    onClick = { ClickResult.Consume },
-  )
+@Composable
+private fun RouteLayers(route: RouteDisplayData) {
+    routeLine(route)?.let { line ->
+        val lineSource = rememberGeoJsonSource(GeoJsonData.Features(line))
+        // Casing = line widths + 2dp each side, like TomTom's outlineWidths = WidthByZoom(2.0).
+        LineLayer(
+            id = "route-casing",
+            source = lineSource,
+            color = const(ROUTE_CASING_COLOR),
+            width =
+                interpolate(
+                    linear(),
+                    zoom(),
+                    ZOOM_FAR to const(10.dp),
+                    ZOOM_MID to const(14.dp),
+                    ZOOM_NEAR to const(18.dp),
+                ),
+        )
+        LineLayer(
+            id = "route-line",
+            source = lineSource,
+            color = const(Color(route.routeColor)),
+            width =
+                interpolate(
+                    linear(),
+                    zoom(),
+                    ZOOM_FAR to const(6.dp),
+                    ZOOM_MID to const(10.dp),
+                    ZOOM_NEAR to const(14.dp),
+                ),
+        )
+    }
+
+    val stopSource = rememberGeoJsonSource(GeoJsonData.Features(routeStopFeatures(route)))
+    // Stops must stay visible next to vehicles and each other in dense areas (TomTom shows every
+    // stop marker): icons ignore collision, and a colliding label may drop while its dot stays.
+    SymbolLayer(
+        id = "route-stops",
+        source = stopSource,
+        iconImage = image(painterResource(CoreR.drawable.ic_stop_dot)),
+        iconAllowOverlap = const(true),
+        textField = format(span(feature["name"].asString())),
+        textFont = LABEL_FONT,
+        textColor = const(Color.DarkGray),
+        textHaloColor = const(Color.White),
+        textHaloWidth = const(1.dp),
+        textSize = const(10.sp),
+        textAnchor = const(SymbolAnchor.Top),
+        textOffset = textOffset(0f.em, 0.8f.em),
+        textOptional = const(true),
+        // A stop tap keeps the selection (TomTom's stop click is a no-op too).
+        onClick = { ClickResult.Consume },
+    )
 }
 
 @Composable
 // onVehicleSelected matches the AdapterView onItemSelected naming convention.
 @Suppress("ParameterNaming")
 private fun VehicleLayer(
-  vehicles: List<VehiclePosition>,
-  onVehicleSelected: (VehiclePosition) -> Unit,
+    vehicles: List<VehiclePosition>,
+    onVehicleSelected: (VehiclePosition) -> Unit,
 ) {
-  val vehicleSource = rememberGeoJsonSource(GeoJsonData.Features(vehicleFeatures(vehicles)))
-  SymbolLayer(
-    id = "vehicles",
-    source = vehicleSource,
-    iconImage =
-      switch(
-        feature["type"].asString(),
-        case("TRAM", image(painterResource(CoreR.drawable.ic_tram))),
-        fallback = image(painterResource(CoreR.drawable.ic_bus)),
-      ),
-    iconAllowOverlap = const(true),
-    textField = format(span(feature["label"].asString())),
-    textFont = LABEL_FONT,
-    textColor = const(Color.White),
-    textHaloColor = const(Color.Black),
-    textHaloWidth = const(2.dp),
-    textSize = const(12.sp),
-    textAnchor = const(SymbolAnchor.Top),
-    textOffset = textOffset(0f.em, 0.8f.em),
-    textAllowOverlap = const(true),
-    onClick = { features ->
-      features
-        .firstOrNull()
-        ?.let(::clickedVehicleId)
-        ?.let { id -> vehicles.firstOrNull { it.vehicleId == id } }
-        ?.let(onVehicleSelected)
-      ClickResult.Consume
-    },
-  )
+    val vehicleSource = rememberGeoJsonSource(GeoJsonData.Features(vehicleFeatures(vehicles)))
+    SymbolLayer(
+        id = "vehicles",
+        source = vehicleSource,
+        iconImage =
+            switch(
+                feature["type"].asString(),
+                case("TRAM", image(painterResource(CoreR.drawable.ic_tram))),
+                fallback = image(painterResource(CoreR.drawable.ic_bus)),
+            ),
+        iconAllowOverlap = const(true),
+        textField = format(span(feature["label"].asString())),
+        textFont = LABEL_FONT,
+        textColor = const(Color.White),
+        textHaloColor = const(Color.Black),
+        textHaloWidth = const(2.dp),
+        textSize = const(12.sp),
+        textAnchor = const(SymbolAnchor.Top),
+        textOffset = textOffset(0f.em, 0.8f.em),
+        textAllowOverlap = const(true),
+        onClick = { features ->
+            features
+                .firstOrNull()
+                ?.let(::clickedVehicleId)
+                ?.let { id -> vehicles.firstOrNull { it.vehicleId == id } }
+                ?.let(onVehicleSelected)
+            ClickResult.Consume
+        },
+    )
 }

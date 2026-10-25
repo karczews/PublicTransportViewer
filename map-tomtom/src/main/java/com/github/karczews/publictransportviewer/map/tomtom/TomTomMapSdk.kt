@@ -12,29 +12,30 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class TomTomMapSdk(private val apiKey: String = BuildConfig.TOMTOM_API_KEY) : MapSdk {
-  override val id = "tomtom"
-  override val displayName = "TomTom"
+    override val id = "tomtom"
+    override val displayName = "TomTom"
 
-  override suspend fun initialize(context: Context) {
-    // TomTom requires initialization on a worker thread; callers run on the main dispatcher.
-    withContext(Dispatchers.IO) {
-      if (!TomTomSdk.isInitialized) {
-        TomTomSdk.initialize(
-          context = context,
-          sdkConfiguration =
-            buildSdkConfiguration(
-              context = context,
-              apiKey = apiKey,
-              // No consent UX yet: stay opted out rather than enabling telemetry by default.
-              telemetryUserConsent = { UserConsent.TelemetryOff },
-            ),
-        )
-      }
+    override suspend fun initialize(context: Context) {
+        // TomTom requires initialization on a worker thread; callers run on the main dispatcher.
+        withContext(Dispatchers.IO) {
+            if (!TomTomSdk.isInitialized) {
+                TomTomSdk.initialize(
+                    context = context,
+                    sdkConfiguration =
+                        buildSdkConfiguration(
+                            context = context,
+                            apiKey = apiKey,
+                            // No consent UX yet: stay opted out rather than enabling telemetry by
+                            // default.
+                            telemetryUserConsent = { UserConsent.TelemetryOff },
+                        ),
+                )
+            }
+        }
     }
-  }
 
-  @Composable
-  override fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier) {
-    TomTomHomeScreen(viewModel = viewModel, modifier = modifier)
-  }
+    @Composable
+    override fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier) {
+        TomTomHomeScreen(viewModel = viewModel, modifier = modifier)
+    }
 }

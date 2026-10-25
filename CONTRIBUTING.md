@@ -51,7 +51,8 @@ refactor(di): migrate from Hilt to Koin
 
 ## Formatting and static analysis
 
-- Formatting is enforced by Spotless with ktfmt (googleStyle): run
+- Formatting is enforced by Spotless with ktfmt (kotlinlang style, matching the
+  `kotlin.code.style=official` IDE setting): run
   `./gradlew spotlessApply` before pushing, CI runs `spotlessCheck`.
 - Static analysis runs via `./gradlew detekt` (config in `config/detekt/detekt.yml`,
   including Compose rules). Fix findings or suppress with a justifying comment;

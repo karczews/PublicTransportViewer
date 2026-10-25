@@ -10,7 +10,7 @@ Guidance for AI coding agents working in this repository.
 ./gradlew installMaplibreDebug   # Install the MapLibre build ("PTV MapLibre")
 ./gradlew test                   # Run unit tests
 ./gradlew lintTomtomDebug lintMaplibreDebug  # Android lint
-./gradlew spotlessCheck          # ktfmt formatting check (googleStyle); run spotlessApply to fix
+./gradlew spotlessCheck          # ktfmt formatting check (kotlinlang style); run spotlessApply to fix
 ./gradlew detekt                 # detekt static analysis (core rules + compose-rules), config in config/detekt/detekt.yml
 ./gradlew connectedAndroidTest   # Run instrumented tests on a connected device/emulator
 ./gradlew :core:testDebugUnitTest --tests "*.HomeViewModelTest"  # Run a single unit test class

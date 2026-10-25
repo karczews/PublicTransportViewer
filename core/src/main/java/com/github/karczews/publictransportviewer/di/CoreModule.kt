@@ -47,76 +47,76 @@ import org.koin.core.annotation.Single
 @ComponentScan("com.github.karczews.publictransportviewer")
 class CoreModule {
 
-  @Single
-  fun okHttpClient(): OkHttpClient =
-    OkHttpClient.Builder()
-      .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-      .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-      .build()
+    @Single
+    fun okHttpClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .build()
 
-  @Single
-  fun gtfsDatabase(context: Context): GtfsDatabase =
-    Room.databaseBuilder(context, GtfsDatabase::class.java, "gtfs.db")
-      .fallbackToDestructiveMigration(dropAllTables = true)
-      .build()
+    @Single
+    fun gtfsDatabase(context: Context): GtfsDatabase =
+        Room.databaseBuilder(context, GtfsDatabase::class.java, "gtfs.db")
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
 
-  @Single fun routeDao(db: GtfsDatabase): RouteDao = db.routeDao()
+    @Single fun routeDao(db: GtfsDatabase): RouteDao = db.routeDao()
 
-  @Single fun stopDao(db: GtfsDatabase): StopDao = db.stopDao()
+    @Single fun stopDao(db: GtfsDatabase): StopDao = db.stopDao()
 
-  @Single fun tripDao(db: GtfsDatabase): TripDao = db.tripDao()
+    @Single fun tripDao(db: GtfsDatabase): TripDao = db.tripDao()
 
-  @Single fun stopTimeDao(db: GtfsDatabase): StopTimeDao = db.stopTimeDao()
+    @Single fun stopTimeDao(db: GtfsDatabase): StopTimeDao = db.stopTimeDao()
 
-  @Single fun shapePointDao(db: GtfsDatabase): ShapePointDao = db.shapePointDao()
+    @Single fun shapePointDao(db: GtfsDatabase): ShapePointDao = db.shapePointDao()
 
-  @Single fun gtfsRtApi(client: OkHttpClient): GtfsRtApi = GtfsRtApiImpl(client)
+    @Single fun gtfsRtApi(client: OkHttpClient): GtfsRtApi = GtfsRtApiImpl(client)
 
-  @Single fun vehicleDataSource(api: GtfsRtApi): VehicleDataSource = GtfsRtVehicleDataSource(api)
+    @Single fun vehicleDataSource(api: GtfsRtApi): VehicleDataSource = GtfsRtVehicleDataSource(api)
 
-  @Single
-  fun tripUpdateDataSource(api: GtfsRtApi): TripUpdateDataSource = GtfsRtTripUpdateDataSource(api)
+    @Single
+    fun tripUpdateDataSource(api: GtfsRtApi): TripUpdateDataSource = GtfsRtTripUpdateDataSource(api)
 
-  @Single fun alertDataSource(api: GtfsRtApi): AlertDataSource = GtfsRtAlertDataSource(api)
+    @Single fun alertDataSource(api: GtfsRtApi): AlertDataSource = GtfsRtAlertDataSource(api)
 
-  @Single
-  fun gtfsStaticDataSource(client: OkHttpClient, db: GtfsDatabase): GtfsStaticDataSource =
-    GtfsStaticDataSource(client, db)
+    @Single
+    fun gtfsStaticDataSource(client: OkHttpClient, db: GtfsDatabase): GtfsStaticDataSource =
+        GtfsStaticDataSource(client, db)
 
-  @Single
-  fun vehicleRepository(
-    dataSource: VehicleDataSource,
-    routeDao: RouteDao,
-    tripDao: TripDao,
-  ): VehicleRepository = DefaultVehicleRepository(dataSource, routeDao, tripDao)
+    @Single
+    fun vehicleRepository(
+        dataSource: VehicleDataSource,
+        routeDao: RouteDao,
+        tripDao: TripDao,
+    ): VehicleRepository = DefaultVehicleRepository(dataSource, routeDao, tripDao)
 
-  @Single
-  fun routeDisplayRepository(
-    tripDao: TripDao,
-    routeDao: RouteDao,
-    shapePointDao: ShapePointDao,
-    stopTimeDao: StopTimeDao,
-    stopDao: StopDao,
-  ): RouteDisplayRepository =
-    DefaultRouteDisplayRepository(tripDao, routeDao, shapePointDao, stopTimeDao, stopDao)
+    @Single
+    fun routeDisplayRepository(
+        tripDao: TripDao,
+        routeDao: RouteDao,
+        shapePointDao: ShapePointDao,
+        stopTimeDao: StopTimeDao,
+        stopDao: StopDao,
+    ): RouteDisplayRepository =
+        DefaultRouteDisplayRepository(tripDao, routeDao, shapePointDao, stopTimeDao, stopDao)
 
-  @Single
-  fun alertRepository(
-    alertDataSource: AlertDataSource,
-    routeDao: RouteDao,
-  ): AlertRepository = DefaultAlertRepository(alertDataSource, routeDao)
+    @Single
+    fun alertRepository(
+        alertDataSource: AlertDataSource,
+        routeDao: RouteDao,
+    ): AlertRepository = DefaultAlertRepository(alertDataSource, routeDao)
 
-  @Single
-  fun stopRepository(
-    stopDao: StopDao,
-    stopTimeDao: StopTimeDao,
-    tripDao: TripDao,
-    routeDao: RouteDao,
-    tripUpdateDataSource: TripUpdateDataSource,
-  ): StopRepository =
-    DefaultStopRepository(stopDao, stopTimeDao, tripDao, routeDao, tripUpdateDataSource)
+    @Single
+    fun stopRepository(
+        stopDao: StopDao,
+        stopTimeDao: StopTimeDao,
+        tripDao: TripDao,
+        routeDao: RouteDao,
+        tripUpdateDataSource: TripUpdateDataSource,
+    ): StopRepository =
+        DefaultStopRepository(stopDao, stopTimeDao, tripDao, routeDao, tripUpdateDataSource)
 
-  companion object {
-    private const val TIMEOUT_SECONDS = 30L
-  }
+    companion object {
+        private const val TIMEOUT_SECONDS = 30L
+    }
 }
