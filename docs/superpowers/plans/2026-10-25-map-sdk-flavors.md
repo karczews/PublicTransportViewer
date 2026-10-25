@@ -42,7 +42,7 @@
 - **Every maplibre `SymbolLayer` sets `textFont = const(listOf("Noto Sans Regular"))`.** The Maptoolkit glyph server 404s maplibre-compose's default font stack (`Open Sans Regular, Arial Unicode MS Regular`), and labels would silently not render.
 - **Resources across modules use non-transitive R** (AGP default). SDK modules reference `:core` drawables via `import com.github.karczews.publictransportviewer.core.R as CoreR`, and their own drawables via their module `R`.
 - Every module with composables sets `buildFeatures { compose = true }`.
-- maplibre-compose layer styling parameters are typed `Expression<…>`. Wrap literals in `const(…)`, and write interpolate stops as `zoomLevel to const(value)`. The verified API is in scratchpad `maplibre-probe-notes.md` and `Probe.kt.txt`.
+- maplibre-compose layer styling parameters are typed `Expression<…>`. Wrap literals in `const(…)`, and write interpolate stops as `zoomLevel to const(value)`. The verified API is in `docs/superpowers/plans/2026-10-25-map-sdk-flavors-maplibre-api.md`.
 - Screenshot checks run in **portrait and landscape**. For landscape: `adb shell settings put system accelerometer_rotation 0 && adb shell settings put system user_rotation 1`; set `user_rotation 0` to go back.
 - Map composables keep producing frames. If a Compose test times out waiting for idle, use `composeRule.waitUntil(5_000) { …node exists… }` before asserting.
 - Maptoolkit attribution:
@@ -88,7 +88,7 @@ After PR 1 is squash-merged upstream, the user rebases with
 - maplibre-compose 0.20.0 + the OpenGL runtime compiled and assembled under Kotlin 2.4.0, AGP 9.4.1 and compileSdk 37 on the first try.
 - The probe needed `alias(libs.plugins.android.library) apply false` in the root build file, which Task 1 adds.
 - Compose resolves to 1.12.1 on both classpaths, so there's no drift. maplibre-compose pulls in no OkHttp.
-- The verified API is in scratchpad `maplibre-probe-notes.md`, with a full compiling sample in `Probe.kt.txt`.
+- The verified API, with a full compiling sample, is in `2026-10-25-map-sdk-flavors-maplibre-api.md`.
 - The probe worktree and branch are deleted. The steps below are kept for the record.
 
 This task answers one question: does maplibre-compose 0.20.0 compile and package here (Kotlin 2.4.0, AGP 9.4.1, compileSdk 37)? Nothing from it is kept.
@@ -330,7 +330,7 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 - Create: `app/src/maplibre/java/com/github/karczews/publictransportviewer/AvailableMapSdks.kt`
 
 **Interfaces:**
-- Consumes: `MapSdk`, `HomeViewModel`, `HomeMapDefaults` (Tasks 2–3), and the probe notes (Task 0).
+- Consumes: `MapSdk`, `HomeViewModel`, `HomeMapDefaults` (Tasks 2–3), and `2026-10-25-map-sdk-flavors-maplibre-api.md` (Task 0).
 - Produces:
   - `class MapLibreMapSdk(private val styleUrl: String = MAPTOOLKIT_SUMMER_STYLE) : MapSdk` (`id = "maplibre"`, `displayName = "MapLibre"`, no-op `initialize`)
   - `const val MAPTOOLKIT_SUMMER_STYLE = "https://styles.maptoolkit.org/summer.json"`
@@ -383,7 +383,7 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 
 **Interfaces:**
 - Consumes: `vehicleLabel`, `vehicleTitle`, `vehicleIconRes` (Task 3); `HomeViewModel.vehiclePositions`, `selectedVehicleId`, `routeDisplay`, `onVehicleSelected`, `clearSelection`.
-- Produces (all `internal`, spatialk geojson types; generics as the 0.20.0 API requires, see the probe notes):
+- Produces (all `internal`, spatialk geojson types; generics as the 0.20.0 API requires, see `2026-10-25-map-sdk-flavors-maplibre-api.md`):
   - `fun vehicleFeatures(vehicles: List<VehiclePosition>): FeatureCollection`. One Point per vehicle at (lon, lat), with string properties `id` = `vehicleId`, `label` = `vehicleLabel(v)` and `type` = `vehicleType.name`.
   - `fun routeLine(route: RouteDisplayData): FeatureCollection?`. One LineString over `polylinePoints` in order; `null` when there are fewer than 2 points.
   - `fun routeStopFeatures(route: RouteDisplayData): FeatureCollection`. One Point per stop with properties `id` and `name`.
@@ -435,12 +435,12 @@ This task answers one question: does maplibre-compose 0.20.0 compile and package
 - Modify: `MapLibreHomeScreen.kt`, `MapLibreHomeScreenTest.kt`
 
 **Interfaces:**
-- Consumes: `HomeMapDefaults.RECENTER_ZOOM`, the maplibre-compose location API (probe notes).
+- Consumes: `HomeMapDefaults.RECENTER_ZOOM`, the maplibre-compose location API (`2026-10-25-map-sdk-flavors-maplibre-api.md`).
 
 - [ ] **Step 1: Add the failing test `homeScreen_showsRecenterButton`** to `MapLibreHomeScreenTest` (same setup as Task 4) and run it. Expected: FAIL, no node with tag `recenter_button`.
 - [ ] **Step 2: Implement location.**
   - `val locationState = rememberLocationState(provider = rememberDefaultLocationProvider())`.
-  - In the map content, `if (locationState.permission is LocationPermission.Granted) LocationIndicatorLayer(id = "user_location", locationState = locationState)`. Use the granted subtype name the probe recorded.
+  - In the map content, `if (locationState.permission is LocationPermission.Granted) LocationIndicatorLayer(id = "user_location", locationState = locationState)`. `LocationPermission.Granted` is a data class.
   - Recenter button, matching `TomTomHomeScreen`: a `FilledTonalIconButton` with `ic_my_location` and content description `"Recenter to my location"`. Modifier: `.align(Alignment.BottomEnd).safeDrawingPadding().padding(end = 16.dp, bottom = 56.dp).size(48.dp).testTag("recenter_button")`; the 56dp clears the attribution button.
   - On click: if not granted, `locationState.requestPermission()`. Otherwise `locationState.lastLocation?.let { scope.launch { mapState.animateCamera(CameraUpdate(center = it.position, zoom = HomeMapDefaults.RECENTER_ZOOM)) } }`.
 - [ ] **Step 3: Confirm it passes** with `./gradlew :map-maplibre:connectedDebugAndroidTest`. Expected: all 3 tests PASS.
