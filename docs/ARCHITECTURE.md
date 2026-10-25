@@ -26,10 +26,21 @@ graph LR
 
 ## Map SDKs
 
-Each map SDK implements `MapSdk` (`id`, `displayName`, `initialize()`, `HomeScreen()`) and owns the
-whole Home tab. `MapSdkHost` (in `:core`) awaits `initialize()` through `MapSdkInitializer` — which
-runs it once, outside the composition, so leaving the tab does not cancel it — and shows a spinner
-or an error in the Home tab meanwhile. Stops and Alerts never wait for a map SDK.
+Each map SDK implements `MapSdk` and owns the whole Home tab:
+
+```kotlin
+interface MapSdk {
+    val id: String                                   // stable id, e.g. "tomtom"
+    val displayName: String
+    suspend fun initialize(context: Context) {}      // idempotent SDK start-up
+    @Composable fun HomeScreen(viewModel: HomeViewModel, modifier: Modifier)
+}
+```
+
+`MapSdkHost` (in `:core`) awaits `initialize()` through `MapSdkInitializer`, which runs it once at a
+time outside the composition, so leaving the tab does not cancel it; a failed initialization is
+logged and retried on the next entry. Meanwhile the Home tab shows a spinner or the error. Stops and
+Alerts never wait for a map SDK.
 
 ### TomTom
 
