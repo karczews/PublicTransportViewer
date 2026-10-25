@@ -9,12 +9,11 @@ import com.github.karczews.publictransportviewer.data.db.entity.ShapePointEntity
 @Dao
 interface ShapePointDao {
 
-    @Query("SELECT * FROM gtfs_shapes WHERE shape_id = :shapeId ORDER BY shape_pt_sequence")
-    suspend fun getShapePoints(shapeId: String): List<ShapePointEntity>
+  @Query("SELECT * FROM gtfs_shapes WHERE shape_id = :shapeId ORDER BY shape_pt_sequence")
+  suspend fun getShapePoints(shapeId: String): List<ShapePointEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(points: List<ShapePointEntity>)
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun insertAll(points: List<ShapePointEntity>)
 
-    @Query("DELETE FROM gtfs_shapes")
-    suspend fun deleteAll()
+  @Query("DELETE FROM gtfs_shapes") suspend fun deleteAll()
 }

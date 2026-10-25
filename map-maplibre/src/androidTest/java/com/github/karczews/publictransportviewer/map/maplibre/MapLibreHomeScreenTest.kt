@@ -15,33 +15,35 @@ import org.junit.Test
 
 class MapLibreHomeScreenTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+  @get:Rule val composeRule = createComposeRule()
 
-    private fun setScreen(viewModel: HomeViewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())) {
-        composeRule.setContent {
-            MapLibreMapSdk().HomeScreen(viewModel, Modifier.fillMaxSize())
-        }
+  private fun setScreen(
+    viewModel: HomeViewModel =
+      HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository()),
+  ) {
+    composeRule.setContent {
+      MapLibreMapSdk().HomeScreen(viewModel, Modifier.fillMaxSize())
     }
+  }
 
-    @Test
-    fun homeScreen_showsMaptoolkitLogo() {
-        setScreen()
-        composeRule.onNodeWithTag("maptoolkit_logo").assertIsDisplayed()
-    }
+  @Test
+  fun homeScreen_showsMaptoolkitLogo() {
+    setScreen()
+    composeRule.onNodeWithTag("maptoolkit_logo").assertIsDisplayed()
+  }
 
-    @Test
-    fun homeScreen_showsRecenterButton() {
-        setScreen()
-        composeRule.onNodeWithTag("recenter_button").assertIsDisplayed()
-    }
+  @Test
+  fun homeScreen_showsRecenterButton() {
+    setScreen()
+    composeRule.onNodeWithTag("recenter_button").assertIsDisplayed()
+  }
 
-    @Test
-    fun selectedVehicle_showsInfoCard() {
-        val viewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())
-        setScreen(viewModel)
-        composeRule.runOnIdle { viewModel.onVehicleSelected(FixtureData.tram10) }
-        composeRule.onNodeWithTag("vehicle_info_card").assertIsDisplayed()
-        composeRule.onNodeWithText("Tram 10 → Chocianowice IKEA").assertIsDisplayed()
-    }
+  @Test
+  fun selectedVehicle_showsInfoCard() {
+    val viewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())
+    setScreen(viewModel)
+    composeRule.runOnIdle { viewModel.onVehicleSelected(FixtureData.tram10) }
+    composeRule.onNodeWithTag("vehicle_info_card").assertIsDisplayed()
+    composeRule.onNodeWithText("Tram 10 → Chocianowice IKEA").assertIsDisplayed()
+  }
 }

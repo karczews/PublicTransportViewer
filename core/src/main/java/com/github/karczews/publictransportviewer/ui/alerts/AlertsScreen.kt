@@ -40,132 +40,141 @@ import com.github.karczews.publictransportviewer.data.model.ServiceAlert
 
 @Composable
 fun AlertsScreen(
-    viewModel: AlertsViewModel,
-    modifier: Modifier = Modifier,
+  viewModel: AlertsViewModel,
+  modifier: Modifier = Modifier,
 ) {
-    val alerts by viewModel.alerts.collectAsStateWithLifecycle()
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+  val alerts by viewModel.alerts.collectAsStateWithLifecycle()
+  val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text("Service Alerts", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(12.dp))
+  Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+    Text("Service Alerts", style = MaterialTheme.typography.titleLarge)
+    Spacer(Modifier.height(12.dp))
 
-        when {
-            isLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            alerts.isEmpty() -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "No active alerts",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(alerts, key = { it.alertId }) { alert ->
-                        AlertCard(alert)
-                    }
-                }
-            }
+    when {
+      isLoading -> {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+          CircularProgressIndicator()
         }
+      }
+      alerts.isEmpty() -> {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+          Text(
+            "No active alerts",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+      }
+      else -> {
+        LazyColumn(
+          modifier = Modifier.fillMaxSize(),
+          verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+          items(alerts, key = { it.alertId }) { alert ->
+            AlertCard(alert)
+          }
+        }
+      }
     }
+  }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AlertCard(alert: ServiceAlert) {
-    var expanded by rememberSaveable(alert.alertId) { mutableStateOf(false) }
-    val effectColor = effectColor(alert.effect)
+  var expanded by rememberSaveable(alert.alertId) { mutableStateOf(false) }
+  val effectColor = effectColor(alert.effect)
 
-    Card(
-        onClick = { expanded = !expanded },
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(effectColor),
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    effectLabel(alert.effect),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = effectColor,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                alert.headerText.ifBlank { "Alert" },
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-            )
+  Card(
+    onClick = { expanded = !expanded },
+    modifier = Modifier.fillMaxWidth(),
+    colors =
+      CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+      ),
+  ) {
+    Column(Modifier.padding(16.dp)) {
+      AlertHeader(alert, effectColor)
+      Spacer(Modifier.height(6.dp))
+      Text(
+        alert.headerText.ifBlank { "Alert" },
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.Medium,
+      )
 
-            if (alert.affectedRouteShortNames.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    alert.affectedRouteShortNames.forEach { name ->
-                        RouteBadge(name)
-                    }
-                }
-            }
-
-            AnimatedVisibility(visible = expanded) {
-                Column {
-                    if (alert.descriptionText.isNotBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            alert.descriptionText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (alert.affectedStopIds.isNotEmpty()) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            "Affected stops: ${alert.affectedStopIds.size}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+      if (alert.affectedRouteShortNames.isNotEmpty()) {
+        Spacer(Modifier.height(8.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+          alert.affectedRouteShortNames.forEach { name ->
+            RouteBadge(name)
+          }
         }
+      }
+
+      AnimatedVisibility(visible = expanded) {
+        AlertDetails(alert)
+      }
     }
+  }
+}
+
+@Composable
+private fun AlertHeader(alert: ServiceAlert, effectColor: Color) {
+  Row(verticalAlignment = Alignment.CenterVertically) {
+    Box(
+      modifier = Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(effectColor),
+    )
+    Spacer(Modifier.width(10.dp))
+    Text(
+      effectLabel(alert.effect),
+      style = MaterialTheme.typography.labelSmall,
+      color = effectColor,
+      fontWeight = FontWeight.Bold,
+    )
+  }
+}
+
+@Composable
+private fun AlertDetails(alert: ServiceAlert) {
+  Column {
+    if (alert.descriptionText.isNotBlank()) {
+      Spacer(Modifier.height(10.dp))
+      Text(
+        alert.descriptionText,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+    if (alert.affectedStopIds.isNotEmpty()) {
+      Spacer(Modifier.height(6.dp))
+      Text(
+        "Affected stops: ${alert.affectedStopIds.size}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+  }
 }
 
 @Composable
 private fun RouteBadge(name: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(horizontal = 8.dp, vertical = 2.dp),
-    ) {
-        Text(
-            name,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-    }
+  Box(
+    modifier =
+      Modifier.clip(RoundedCornerShape(4.dp))
+        .background(MaterialTheme.colorScheme.primaryContainer)
+        .padding(horizontal = 8.dp, vertical = 2.dp),
+  ) {
+    Text(
+      name,
+      style = MaterialTheme.typography.labelSmall,
+      fontWeight = FontWeight.Bold,
+      color = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
+  }
 }
 
-private fun effectLabel(effect: AlertEffect): String = when (effect) {
+private fun effectLabel(effect: AlertEffect): String =
+  when (effect) {
     AlertEffect.NO_SERVICE -> "NO SERVICE"
     AlertEffect.REDUCED_SERVICE -> "REDUCED SERVICE"
     AlertEffect.SIGNIFICANT_DELAYS -> "DELAYS"
@@ -175,16 +184,19 @@ private fun effectLabel(effect: AlertEffect): String = when (effect) {
     AlertEffect.STOP_MOVED -> "STOP MOVED"
     AlertEffect.OTHER_EFFECT -> "ALERT"
     AlertEffect.UNKNOWN_EFFECT -> "ALERT"
-}
+  }
 
-private fun effectColor(effect: AlertEffect): Color = when (effect) {
-    AlertEffect.NO_SERVICE -> Color(0xFFB00020)
-    AlertEffect.REDUCED_SERVICE -> Color(0xFFE65100)
-    AlertEffect.SIGNIFICANT_DELAYS -> Color(0xFFFF6F00)
-    AlertEffect.DETOUR -> Color(0xFF0277BD)
-    AlertEffect.ADDITIONAL_SERVICE -> Color(0xFF2E7D32)
-    AlertEffect.MODIFIED_SERVICE -> Color(0xFF6A1B9A)
-    AlertEffect.STOP_MOVED -> Color(0xFF00838F)
-    AlertEffect.OTHER_EFFECT -> Color(0xFF455A64)
-    AlertEffect.UNKNOWN_EFFECT -> Color(0xFF455A64)
-}
+private val EFFECT_COLORS =
+  mapOf(
+    AlertEffect.NO_SERVICE to Color(0xFFB00020),
+    AlertEffect.REDUCED_SERVICE to Color(0xFFE65100),
+    AlertEffect.SIGNIFICANT_DELAYS to Color(0xFFFF6F00),
+    AlertEffect.DETOUR to Color(0xFF0277BD),
+    AlertEffect.ADDITIONAL_SERVICE to Color(0xFF2E7D32),
+    AlertEffect.MODIFIED_SERVICE to Color(0xFF6A1B9A),
+    AlertEffect.STOP_MOVED to Color(0xFF00838F),
+    AlertEffect.OTHER_EFFECT to Color(0xFF455A64),
+    AlertEffect.UNKNOWN_EFFECT to Color(0xFF455A64),
+  )
+
+private fun effectColor(effect: AlertEffect): Color = EFFECT_COLORS.getValue(effect)

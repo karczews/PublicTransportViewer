@@ -14,53 +14,52 @@ import org.junit.Test
 
 class NavigationTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+  @get:Rule val composeRule = createComposeRule()
 
-    private fun setApp(vararg sdks: MapSdk) {
-        composeRule.setContent {
-            PublicTransportViewerTheme { PublicTransportViewerApp(sdks.toList()) }
-        }
+  private fun setApp(vararg sdks: MapSdk) {
+    composeRule.setContent {
+      PublicTransportViewerTheme { PublicTransportViewerApp(sdks.toList()) }
     }
+  }
 
-    @Test
-    fun bottomNavigation_showsAllTabs() {
-        setApp(FakeMapSdk())
-        composeRule.onNodeWithText("Home").assertIsDisplayed()
-        composeRule.onNodeWithText("Stops").assertIsDisplayed()
-        composeRule.onNodeWithText("Alerts").assertIsDisplayed()
-    }
+  @Test
+  fun bottomNavigation_showsAllTabs() {
+    setApp(FakeMapSdk())
+    composeRule.onNodeWithText("Home").assertIsDisplayed()
+    composeRule.onNodeWithText("Stops").assertIsDisplayed()
+    composeRule.onNodeWithText("Alerts").assertIsDisplayed()
+  }
 
-    @Test
-    fun navigateToStops_showsSearchField() {
-        setApp(FakeMapSdk())
-        composeRule.onNodeWithText("Stops").performClick()
-        composeRule.onNodeWithTag("search_field").assertIsDisplayed()
-    }
+  @Test
+  fun navigateToStops_showsSearchField() {
+    setApp(FakeMapSdk())
+    composeRule.onNodeWithText("Stops").performClick()
+    composeRule.onNodeWithTag("search_field").assertIsDisplayed()
+  }
 
-    @Test
-    fun navigateToAlerts_showsTitle() {
-        setApp(FakeMapSdk())
-        composeRule.onNodeWithText("Alerts").performClick()
-        composeRule.onNodeWithText("Service Alerts").assertIsDisplayed()
-    }
+  @Test
+  fun navigateToAlerts_showsTitle() {
+    setApp(FakeMapSdk())
+    composeRule.onNodeWithText("Alerts").performClick()
+    composeRule.onNodeWithText("Service Alerts").assertIsDisplayed()
+  }
 
-    @Test
-    fun homeTab_showsFakeMap() {
-        setApp(FakeMapSdk())
-        composeRule.onNodeWithTag("fake_map_fake").assertIsDisplayed()
-    }
+  @Test
+  fun homeTab_showsFakeMap() {
+    setApp(FakeMapSdk())
+    composeRule.onNodeWithTag("fake_map_fake").assertIsDisplayed()
+  }
 
-    @Test
-    fun homeTab_showsSpinnerWhileInitializing() {
-        setApp(FakeMapSdk(onInitialize = { awaitCancellation() }))
-        composeRule.onNodeWithTag("map_sdk_loading").assertIsDisplayed()
-        composeRule.onNodeWithTag("fake_map_fake").assertDoesNotExist()
-    }
+  @Test
+  fun homeTab_showsSpinnerWhileInitializing() {
+    setApp(FakeMapSdk(onInitialize = { awaitCancellation() }))
+    composeRule.onNodeWithTag("map_sdk_loading").assertIsDisplayed()
+    composeRule.onNodeWithTag("fake_map_fake").assertDoesNotExist()
+  }
 
-    @Test
-    fun homeTab_showsErrorWhenInitFails() {
-        setApp(FakeMapSdk(onInitialize = { error("boom") }))
-        composeRule.onNodeWithText("Couldn't start Fake: boom").assertIsDisplayed()
-    }
+  @Test
+  fun homeTab_showsErrorWhenInitFails() {
+    setApp(FakeMapSdk(onInitialize = { error("boom") }))
+    composeRule.onNodeWithText("Couldn't start Fake: boom").assertIsDisplayed()
+  }
 }

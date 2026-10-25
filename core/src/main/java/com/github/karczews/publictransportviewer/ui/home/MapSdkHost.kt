@@ -22,33 +22,42 @@ import org.koin.androidx.compose.koinViewModel
  */
 @Composable
 fun MapSdkHost(
-    mapSdks: List<MapSdk>,
-    initializer: MapSdkInitializer,
-    modifier: Modifier = Modifier,
+  mapSdks: List<MapSdk>,
+  initializer: MapSdkInitializer,
+  modifier: Modifier = Modifier,
 ) {
-    val sdk = mapSdks.first()
-    val initialState = if (initializer.isReady(sdk.id)) MapSdkInitState.Ready else MapSdkInitState.Loading
-    val state by produceState(initialState, sdk.id) {
-        if (value != MapSdkInitState.Ready) {
-            value = initializer.ensureInitialized(sdk).await().fold(
-                onSuccess = { MapSdkInitState.Ready },
-                onFailure = { MapSdkInitState.Failed(it.message ?: it::class.simpleName.orEmpty()) },
+  val sdk = mapSdks.first()
+  val initialState =
+    if (initializer.isReady(sdk.id)) MapSdkInitState.Ready else MapSdkInitState.Loading
+  val state by
+    produceState(initialState, sdk.id) {
+      if (value != MapSdkInitState.Ready) {
+        value =
+          initializer
+            .ensureInitialized(sdk)
+            .await()
+            .fold(
+              onSuccess = { MapSdkInitState.Ready },
+              onFailure = { MapSdkInitState.Failed(it.message ?: it::class.simpleName.orEmpty()) },
             )
-        }
+      }
     }
 
-    Box(modifier.fillMaxSize()) {
-        when (val current = state) {
-            MapSdkInitState.Loading -> CircularProgressIndicator(
-                Modifier.align(Alignment.Center).testTag("map_sdk_loading"),
-            )
-            is MapSdkInitState.Failed -> Text(
-                "Couldn't start ${sdk.displayName}: ${current.message}",
-                Modifier.align(Alignment.Center).padding(16.dp).testTag("map_sdk_error"),
-            )
-            MapSdkInitState.Ready -> key(sdk.id) {
-                sdk.HomeScreen(koinViewModel<HomeViewModel>(), Modifier.fillMaxSize())
-            }
+  Box(modifier.fillMaxSize()) {
+    when (val current = state) {
+      MapSdkInitState.Loading ->
+        CircularProgressIndicator(
+          Modifier.align(Alignment.Center).testTag("map_sdk_loading"),
+        )
+      is MapSdkInitState.Failed ->
+        Text(
+          "Couldn't start ${sdk.displayName}: ${current.message}",
+          Modifier.align(Alignment.Center).padding(16.dp).testTag("map_sdk_error"),
+        )
+      MapSdkInitState.Ready ->
+        key(sdk.id) {
+          sdk.HomeScreen(koinViewModel<HomeViewModel>(), Modifier.fillMaxSize())
         }
     }
+  }
 }

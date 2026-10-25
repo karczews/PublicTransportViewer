@@ -16,21 +16,27 @@ import com.github.karczews.publictransportviewer.data.db.entity.StopTimeEntity
 import com.github.karczews.publictransportviewer.data.db.entity.TripEntity
 
 @Database(
-    entities = [
-        RouteEntity::class,
-        StopEntity::class,
-        TripEntity::class,
-        StopTimeEntity::class,
-        ShapePointEntity::class,
-        GtfsMetadataEntity::class,
+  entities =
+    [
+      RouteEntity::class,
+      StopEntity::class,
+      TripEntity::class,
+      StopTimeEntity::class,
+      ShapePointEntity::class,
+      GtfsMetadataEntity::class,
     ],
-    version = 2,
+  version = 2,
 )
 abstract class GtfsDatabase : RoomDatabase() {
-    abstract fun routeDao(): RouteDao
-    abstract fun stopDao(): StopDao
-    abstract fun tripDao(): TripDao
-    abstract fun stopTimeDao(): StopTimeDao
-    abstract fun shapePointDao(): ShapePointDao
-    abstract fun metadataDao(): GtfsMetadataDao
+  abstract fun routeDao(): RouteDao
+
+  abstract fun stopDao(): StopDao
+
+  abstract fun tripDao(): TripDao
+
+  abstract fun stopTimeDao(): StopTimeDao
+
+  abstract fun shapePointDao(): ShapePointDao
+
+  abstract fun metadataDao(): GtfsMetadataDao
 }

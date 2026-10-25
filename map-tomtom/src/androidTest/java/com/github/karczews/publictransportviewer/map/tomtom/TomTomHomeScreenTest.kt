@@ -16,17 +16,16 @@ import org.junit.Test
 
 class TomTomHomeScreenTest {
 
-    @get:Rule
-    val composeRule = createComposeRule()
+  @get:Rule val composeRule = createComposeRule()
 
-    @Test
-    fun homeScreen_showsRecenterButton() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
-        runBlocking(Dispatchers.Main) { TomTomMapSdk().initialize(context) }
-        val viewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())
-        composeRule.setContent {
-            TomTomMapSdk().HomeScreen(viewModel, Modifier.fillMaxSize())
-        }
-        composeRule.onNodeWithTag("recenter_button").assertIsDisplayed()
+  @Test
+  fun homeScreen_showsRecenterButton() {
+    val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
+    runBlocking(Dispatchers.Main) { TomTomMapSdk().initialize(context) }
+    val viewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())
+    composeRule.setContent {
+      TomTomMapSdk().HomeScreen(viewModel, Modifier.fillMaxSize())
     }
+    composeRule.onNodeWithTag("recenter_button").assertIsDisplayed()
+  }
 }

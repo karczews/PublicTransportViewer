@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import com.github.karczews.publictransportviewer.data.source.GtfsStaticDataSource
 import com.github.karczews.publictransportviewer.data.worker.GtfsRefreshWorker
 import com.github.karczews.publictransportviewer.di.CoreModule
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,56 +19,55 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.workmanager.koin.workManagerFactory
 import org.koin.core.annotation.KoinApplication
 import org.koin.plugin.module.dsl.startKoin
-import java.util.concurrent.TimeUnit
 
 /**
  * Aggregator type for the Koin compiler plugin: declares which annotated modules make up the
- * application graph. `startKoin<PublicTransportKoinConfiguration>()` loads [CoreModule] and triggers
- * the compile-time full-graph safety check.
+ * application graph. `startKoin<PublicTransportKoinConfiguration>()` loads [CoreModule] and
+ * triggers the compile-time full-graph safety check.
  */
-@KoinApplication(modules = [CoreModule::class])
-internal object PublicTransportKoinConfiguration
+@KoinApplication(modules = [CoreModule::class]) internal object PublicTransportKoinConfiguration
 
 class PublicTransportApp : Application() {
 
-    private val gtfsStaticDataSource: GtfsStaticDataSource by inject()
+  private val gtfsStaticDataSource: GtfsStaticDataSource by inject()
 
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+  private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    override fun onCreate() {
-        super.onCreate()
-        startKoin<PublicTransportKoinConfiguration> {
-            androidLogger()
-            androidContext(this@PublicTransportApp)
-            // Registers KoinWorkerFactory and initializes WorkManager (the default
-            // WorkManagerInitializer is removed in the manifest). Must run after androidContext().
-            workManagerFactory()
+  override fun onCreate() {
+    super.onCreate()
+    startKoin<PublicTransportKoinConfiguration> {
+      androidLogger()
+      androidContext(this@PublicTransportApp)
+      // Registers KoinWorkerFactory and initializes WorkManager (the default
+      // WorkManagerInitializer is removed in the manifest). Must run after androidContext().
+      workManagerFactory()
+    }
+    scheduleGtfsRefresh()
+    triggerInitialGtfsDownloadIfNeeded()
+  }
+
+  private fun scheduleGtfsRefresh() {
+    val periodicRequest = PeriodicWorkRequestBuilder<GtfsRefreshWorker>(7, TimeUnit.DAYS).build()
+    WorkManager.getInstance(this)
+      .enqueueUniquePeriodicWork(
+        GtfsRefreshWorker.WORK_NAME,
+        ExistingPeriodicWorkPolicy.KEEP,
+        periodicRequest,
+      )
+  }
+
+  private fun triggerInitialGtfsDownloadIfNeeded() {
+    appScope.launch {
+      if (!gtfsStaticDataSource.isDataAvailable()) {
+        Log.d("PublicTransportApp", "Starting initial GTFS download")
+        val result = gtfsStaticDataSource.downloadAndImport()
+        Log.d("PublicTransportApp", "GTFS download result: $result")
+        result.exceptionOrNull()?.let {
+          Log.e("PublicTransportApp", "GTFS download failed", it)
         }
-        scheduleGtfsRefresh()
-        triggerInitialGtfsDownloadIfNeeded()
+      } else {
+        Log.d("PublicTransportApp", "GTFS data already available")
+      }
     }
-
-    private fun scheduleGtfsRefresh() {
-        val periodicRequest = PeriodicWorkRequestBuilder<GtfsRefreshWorker>(7, TimeUnit.DAYS).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            GtfsRefreshWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
-            periodicRequest,
-        )
-    }
-
-    private fun triggerInitialGtfsDownloadIfNeeded() {
-        appScope.launch {
-            if (!gtfsStaticDataSource.isDataAvailable()) {
-                Log.d("PublicTransportApp", "Starting initial GTFS download")
-                val result = gtfsStaticDataSource.downloadAndImport()
-                Log.d("PublicTransportApp", "GTFS download result: $result")
-                result.exceptionOrNull()?.let {
-                    Log.e("PublicTransportApp", "GTFS download failed", it)
-                }
-            } else {
-                Log.d("PublicTransportApp", "GTFS data already available")
-            }
-        }
-    }
+  }
 }

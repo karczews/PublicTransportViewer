@@ -29,275 +29,280 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-    private lateinit var vehicleFlow: MutableSharedFlow<List<VehiclePosition>>
-    private lateinit var fakeVehicleRepo: FakeVehicleRepository
-    private lateinit var fakeRouteDisplayRepo: FakeRouteDisplayRepository
+  private val testDispatcher = UnconfinedTestDispatcher()
+  private lateinit var vehicleFlow: MutableSharedFlow<List<VehiclePosition>>
+  private lateinit var fakeVehicleRepo: FakeVehicleRepository
+  private lateinit var fakeRouteDisplayRepo: FakeRouteDisplayRepository
 
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-        vehicleFlow = MutableSharedFlow()
-        fakeVehicleRepo = FakeVehicleRepository(vehicleFlow)
-        fakeRouteDisplayRepo = FakeRouteDisplayRepository()
-    }
+  @Before
+  fun setUp() {
+    Dispatchers.setMain(testDispatcher)
+    vehicleFlow = MutableSharedFlow()
+    fakeVehicleRepo = FakeVehicleRepository(vehicleFlow)
+    fakeRouteDisplayRepo = FakeRouteDisplayRepository()
+  }
 
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
+  @After
+  fun tearDown() {
+    Dispatchers.resetMain()
+  }
 
-    private fun tram(id: String = "V1", routeId: String = "10", tripId: String? = "T1") =
-        VehiclePosition(
-            vehicleId = id,
-            routeId = routeId,
-            tripId = tripId,
-            label = routeId,
-            latitude = 51.76,
-            longitude = 19.46,
-            bearing = 0f,
-            speed = 0f,
-            timestamp = 1000L,
-            vehicleType = VehicleType.TRAM,
-            currentStatus = VehicleStatus.IN_TRANSIT_TO,
-            routeShortName = routeId,
-        )
+  private fun tram(id: String = "V1", routeId: String = "10", tripId: String? = "T1") =
+    VehiclePosition(
+      vehicleId = id,
+      routeId = routeId,
+      tripId = tripId,
+      label = routeId,
+      latitude = 51.76,
+      longitude = 19.46,
+      bearing = 0f,
+      speed = 0f,
+      timestamp = 1000L,
+      vehicleType = VehicleType.TRAM,
+      currentStatus = VehicleStatus.IN_TRANSIT_TO,
+      routeShortName = routeId,
+    )
 
-    private fun bus(id: String = "V2", routeId: String = "50", tripId: String = "T2") =
-        VehiclePosition(
-            vehicleId = id,
-            routeId = routeId,
-            tripId = tripId,
-            label = routeId,
-            latitude = 51.77,
-            longitude = 19.47,
-            bearing = 0f,
-            speed = 0f,
-            timestamp = 1000L,
-            vehicleType = VehicleType.BUS,
-            currentStatus = VehicleStatus.IN_TRANSIT_TO,
-            routeShortName = routeId,
-        )
+  private fun bus(id: String = "V2", routeId: String = "50", tripId: String = "T2") =
+    VehiclePosition(
+      vehicleId = id,
+      routeId = routeId,
+      tripId = tripId,
+      label = routeId,
+      latitude = 51.77,
+      longitude = 19.47,
+      bearing = 0f,
+      speed = 0f,
+      timestamp = 1000L,
+      vehicleType = VehicleType.BUS,
+      currentStatus = VehicleStatus.IN_TRANSIT_TO,
+      routeShortName = routeId,
+    )
 
-    @Test
-    fun `displays trams and buses from repository`() = runTest {
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+  @Test
+  fun `displays trams and buses from repository`() = runTest {
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
 
-        vehicleFlow.emit(listOf(tram(), bus()))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(tram(), bus()))
+    advanceUntilIdle()
 
-        val vehicles = viewModel.vehiclePositions.value
-        assertEquals(2, vehicles.size)
+    val vehicles = viewModel.vehiclePositions.value
+    assertEquals(2, vehicles.size)
 
-        val tram = vehicles.find { it.vehicleType == VehicleType.TRAM }
-        val bus = vehicles.find { it.vehicleType == VehicleType.BUS }
-        assertNotNull(tram)
-        assertNotNull(bus)
-        assertEquals("10", tram!!.routeShortName)
-        assertEquals("50", bus!!.routeShortName)
-    }
+    val tram = vehicles.find { it.vehicleType == VehicleType.TRAM }
+    val bus = vehicles.find { it.vehicleType == VehicleType.BUS }
+    assertNotNull(tram)
+    assertNotNull(bus)
+    assertEquals("10", tram!!.routeShortName)
+    assertEquals("50", bus!!.routeShortName)
+  }
 
-    @Test
-    fun `selecting vehicle sets selectedVehicleId`() = runTest {
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
-        val vehicle = tram()
+  @Test
+  fun `selecting vehicle sets selectedVehicleId`() = runTest {
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    val vehicle = tram()
 
-        vehicleFlow.emit(listOf(vehicle))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(vehicle))
+    advanceUntilIdle()
 
-        viewModel.onVehicleSelected(vehicle)
-        advanceUntilIdle()
+    viewModel.onVehicleSelected(vehicle)
+    advanceUntilIdle()
 
-        assertEquals("V1", viewModel.selectedVehicleId.value)
-    }
+    assertEquals("V1", viewModel.selectedVehicleId.value)
+  }
 
-    @Test
-    fun `selecting tram loads route display with polyline and stops`() = runTest {
-        val routeData = RouteDisplayData(
-            routeId = "10",
-            routeShortName = "10",
-            routeColor = 0xFF0000,
-            polylinePoints = listOf(LatLon(51.76, 19.46), LatLon(51.77, 19.47)),
-            stops = listOf(
-                RouteStop("S1", "Piotrkowska", 51.76, 19.46),
-                RouteStop("S2", "Centrum", 51.77, 19.47),
-            ),
-        )
-        fakeRouteDisplayRepo.routeData = mapOf("T1" to routeData)
+  @Test
+  fun `selecting tram loads route display with polyline and stops`() = runTest {
+    val routeData =
+      RouteDisplayData(
+        routeId = "10",
+        routeShortName = "10",
+        routeColor = 0xFF0000,
+        polylinePoints = listOf(LatLon(51.76, 19.46), LatLon(51.77, 19.47)),
+        stops =
+          listOf(
+            RouteStop("S1", "Piotrkowska", 51.76, 19.46),
+            RouteStop("S2", "Centrum", 51.77, 19.47),
+          ),
+      )
+    fakeRouteDisplayRepo.routeData = mapOf("T1" to routeData)
 
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
-        val vehicle = tram()
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    val vehicle = tram()
 
-        vehicleFlow.emit(listOf(vehicle))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(vehicle))
+    advanceUntilIdle()
 
-        viewModel.onVehicleSelected(vehicle)
-        advanceUntilIdle()
+    viewModel.onVehicleSelected(vehicle)
+    advanceUntilIdle()
 
-        val route = viewModel.routeDisplay.value
-        assertNotNull(route)
-        assertEquals("10", route!!.routeShortName)
-        assertEquals(2, route.polylinePoints.size)
-        assertEquals(2, route.stops.size)
-        assertEquals("Piotrkowska", route.stops[0].stopName)
-    }
+    val route = viewModel.routeDisplay.value
+    assertNotNull(route)
+    assertEquals("10", route!!.routeShortName)
+    assertEquals(2, route.polylinePoints.size)
+    assertEquals(2, route.stops.size)
+    assertEquals("Piotrkowska", route.stops[0].stopName)
+  }
 
-    @Test
-    fun `clearSelection clears vehicle id and route display`() = runTest {
-        fakeRouteDisplayRepo.routeData = mapOf(
-            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList())
-        )
+  @Test
+  fun `clearSelection clears vehicle id and route display`() = runTest {
+    fakeRouteDisplayRepo.routeData =
+      mapOf(
+        "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+      )
 
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
-        val vehicle = tram()
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    val vehicle = tram()
 
-        vehicleFlow.emit(listOf(vehicle))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(vehicle))
+    advanceUntilIdle()
 
-        viewModel.onVehicleSelected(vehicle)
-        advanceUntilIdle()
-        assertNotNull(viewModel.selectedVehicleId.value)
+    viewModel.onVehicleSelected(vehicle)
+    advanceUntilIdle()
+    assertNotNull(viewModel.selectedVehicleId.value)
 
-        viewModel.clearSelection()
-        advanceUntilIdle()
+    viewModel.clearSelection()
+    advanceUntilIdle()
 
-        assertNull(viewModel.selectedVehicleId.value)
-        assertNull(viewModel.routeDisplay.value)
-    }
+    assertNull(viewModel.selectedVehicleId.value)
+    assertNull(viewModel.routeDisplay.value)
+  }
 
-    @Test
-    fun `selecting same vehicle twice deselects it`() = runTest {
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
-        val vehicle = tram()
+  @Test
+  fun `selecting same vehicle twice deselects it`() = runTest {
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    val vehicle = tram()
 
-        vehicleFlow.emit(listOf(vehicle))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(vehicle))
+    advanceUntilIdle()
 
-        viewModel.onVehicleSelected(vehicle)
-        advanceUntilIdle()
-        assertEquals("V1", viewModel.selectedVehicleId.value)
+    viewModel.onVehicleSelected(vehicle)
+    advanceUntilIdle()
+    assertEquals("V1", viewModel.selectedVehicleId.value)
 
-        viewModel.onVehicleSelected(vehicle)
-        advanceUntilIdle()
-        assertNull(viewModel.selectedVehicleId.value)
-    }
+    viewModel.onVehicleSelected(vehicle)
+    advanceUntilIdle()
+    assertNull(viewModel.selectedVehicleId.value)
+  }
 
-    @Test
-    fun `initially no vehicles are displayed`() = runTest {
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
-        advanceUntilIdle()
+  @Test
+  fun `initially no vehicles are displayed`() = runTest {
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    advanceUntilIdle()
 
-        assertTrue(viewModel.vehiclePositions.value.isEmpty())
-        assertNull(viewModel.selectedVehicleId.value)
-        assertNull(viewModel.routeDisplay.value)
-    }
+    assertTrue(viewModel.vehiclePositions.value.isEmpty())
+    assertNull(viewModel.selectedVehicleId.value)
+    assertNull(viewModel.routeDisplay.value)
+  }
 
-    @Test
-    fun `route display is null for vehicle without tripId`() = runTest {
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
-        val vehicle = tram(tripId = null)
+  @Test
+  fun `route display is null for vehicle without tripId`() = runTest {
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    val vehicle = tram(tripId = null)
 
-        vehicleFlow.emit(listOf(vehicle))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(vehicle))
+    advanceUntilIdle()
 
-        viewModel.onVehicleSelected(vehicle)
-        advanceUntilIdle()
+    viewModel.onVehicleSelected(vehicle)
+    advanceUntilIdle()
 
-        assertEquals("V1", viewModel.selectedVehicleId.value)
-        assertNull(viewModel.routeDisplay.value)
-    }
+    assertEquals("V1", viewModel.selectedVehicleId.value)
+    assertNull(viewModel.routeDisplay.value)
+  }
 
-    @Test
-    fun `vehicle positions update when flow emits new data`() = runTest {
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+  @Test
+  fun `vehicle positions update when flow emits new data`() = runTest {
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
 
-        vehicleFlow.emit(listOf(tram()))
-        advanceUntilIdle()
-        assertEquals(1, viewModel.vehiclePositions.value.size)
+    vehicleFlow.emit(listOf(tram()))
+    advanceUntilIdle()
+    assertEquals(1, viewModel.vehiclePositions.value.size)
 
-        vehicleFlow.emit(listOf(tram(), bus()))
-        advanceUntilIdle()
-        assertEquals(2, viewModel.vehiclePositions.value.size)
-    }
+    vehicleFlow.emit(listOf(tram(), bus()))
+    advanceUntilIdle()
+    assertEquals(2, viewModel.vehiclePositions.value.size)
+  }
 
-    @Test
-    fun `selecting another vehicle clears previous route while new one loads`() = runTest {
-        fakeRouteDisplayRepo.routeData = mapOf(
-            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
-            "T2" to RouteDisplayData("50", "50", 0, emptyList(), emptyList()),
-        )
+  @Test
+  fun `selecting another vehicle clears previous route while new one loads`() = runTest {
+    fakeRouteDisplayRepo.routeData =
+      mapOf(
+        "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+        "T2" to RouteDisplayData("50", "50", 0, emptyList(), emptyList()),
+      )
 
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
 
-        vehicleFlow.emit(listOf(tram(), bus()))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(tram(), bus()))
+    advanceUntilIdle()
 
-        viewModel.onVehicleSelected(tram())
-        advanceUntilIdle()
-        assertNotNull(viewModel.routeDisplay.value)
+    viewModel.onVehicleSelected(tram())
+    advanceUntilIdle()
+    assertNotNull(viewModel.routeDisplay.value)
 
-        fakeRouteDisplayRepo.gate = CompletableDeferred()
-        viewModel.onVehicleSelected(bus())
-        advanceUntilIdle()
+    fakeRouteDisplayRepo.gate = CompletableDeferred()
+    viewModel.onVehicleSelected(bus())
+    advanceUntilIdle()
 
-        assertEquals("V2", viewModel.selectedVehicleId.value)
-        assertNull(viewModel.routeDisplay.value)
+    assertEquals("V2", viewModel.selectedVehicleId.value)
+    assertNull(viewModel.routeDisplay.value)
 
-        fakeRouteDisplayRepo.gate!!.complete(Unit)
-        advanceUntilIdle()
+    fakeRouteDisplayRepo.gate!!.complete(Unit)
+    advanceUntilIdle()
 
-        assertEquals("50", viewModel.routeDisplay.value!!.routeShortName)
-    }
+    assertEquals("50", viewModel.routeDisplay.value!!.routeShortName)
+  }
 
-    @Test
-    fun `route is not published when selection cleared during load`() = runTest {
-        fakeRouteDisplayRepo.routeData = mapOf(
-            "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
-        )
-        fakeRouteDisplayRepo.gate = CompletableDeferred()
+  @Test
+  fun `route is not published when selection cleared during load`() = runTest {
+    fakeRouteDisplayRepo.routeData =
+      mapOf(
+        "T1" to RouteDisplayData("10", "10", 0, emptyList(), emptyList()),
+      )
+    fakeRouteDisplayRepo.gate = CompletableDeferred()
 
-        val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
+    val viewModel = HomeViewModel(fakeVehicleRepo, fakeRouteDisplayRepo)
 
-        vehicleFlow.emit(listOf(tram()))
-        advanceUntilIdle()
+    vehicleFlow.emit(listOf(tram()))
+    advanceUntilIdle()
 
-        viewModel.onVehicleSelected(tram())
-        advanceUntilIdle()
-        assertNull(viewModel.routeDisplay.value)
+    viewModel.onVehicleSelected(tram())
+    advanceUntilIdle()
+    assertNull(viewModel.routeDisplay.value)
 
-        viewModel.clearSelection()
-        fakeRouteDisplayRepo.gate!!.complete(Unit)
-        advanceUntilIdle()
+    viewModel.clearSelection()
+    fakeRouteDisplayRepo.gate!!.complete(Unit)
+    advanceUntilIdle()
 
-        assertNull(viewModel.selectedVehicleId.value)
-        assertNull(viewModel.routeDisplay.value)
-    }
+    assertNull(viewModel.selectedVehicleId.value)
+    assertNull(viewModel.routeDisplay.value)
+  }
 
-    @Test
-    fun `visibleRouteDisplay hides route when vehicle left the feed`() {
-        val route = RouteDisplayData("10", "10", 0, emptyList(), emptyList())
+  @Test
+  fun `visibleRouteDisplay hides route when vehicle left the feed`() {
+    val route = RouteDisplayData("10", "10", 0, emptyList(), emptyList())
 
-        assertNull(visibleRouteDisplay(null, listOf(tram()), "V1"))
-        assertNull(visibleRouteDisplay(route, listOf(tram()), null))
-        assertNull(visibleRouteDisplay(route, listOf(bus()), "V1"))
-        assertNull(visibleRouteDisplay(route, emptyList(), "V1"))
+    assertNull(visibleRouteDisplay(null, listOf(tram()), "V1"))
+    assertNull(visibleRouteDisplay(route, listOf(tram()), null))
+    assertNull(visibleRouteDisplay(route, listOf(bus()), "V1"))
+    assertNull(visibleRouteDisplay(route, emptyList(), "V1"))
 
-        assertEquals(route, visibleRouteDisplay(route, listOf(tram(), bus()), "V1"))
-    }
+    assertEquals(route, visibleRouteDisplay(route, listOf(tram(), bus()), "V1"))
+  }
 }
 
 private class FakeVehicleRepository(
-    private val flow: Flow<List<VehiclePosition>>,
+  private val flow: Flow<List<VehiclePosition>>,
 ) : VehicleRepository {
-    override fun observeVehiclePositions(): Flow<List<VehiclePosition>> = flow
+  override fun observeVehiclePositions(): Flow<List<VehiclePosition>> = flow
 }
 
 private class FakeRouteDisplayRepository : RouteDisplayRepository {
-    var routeData: Map<String, RouteDisplayData> = emptyMap()
-    var gate: CompletableDeferred<Unit>? = null
+  var routeData: Map<String, RouteDisplayData> = emptyMap()
+  var gate: CompletableDeferred<Unit>? = null
 
-    override suspend fun loadRouteForTrip(tripId: String): RouteDisplayData? {
-        gate?.await()
-        return routeData[tripId]
-    }
+  override suspend fun loadRouteForTrip(tripId: String): RouteDisplayData? {
+    gate?.await()
+    return routeData[tripId]
+  }
 }

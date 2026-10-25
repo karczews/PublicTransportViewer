@@ -9,7 +9,7 @@ import androidx.test.runner.AndroidJUnitRunner
  * repositories instead of the production graph.
  */
 class KoinTestRunner : AndroidJUnitRunner() {
-    override fun newApplication(cl: ClassLoader?, name: String?, context: Context?): Application {
-        return super.newApplication(cl, TestPublicTransportApp::class.java.name, context)
-    }
+  override fun newApplication(cl: ClassLoader?, name: String?, context: Context?): Application {
+    return super.newApplication(cl, TestPublicTransportApp::class.java.name, context)
+  }
 }

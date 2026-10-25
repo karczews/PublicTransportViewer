@@ -21,9 +21,12 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
 
+  code-quality:
+    uses: ./.github/workflows/code-quality.yml
+
   gate:
     if: github.event_name == 'pull_request'
-    needs: [unit-tests, lint, build]
+    needs: [unit-tests, lint, build, code-quality]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All checks passed"
