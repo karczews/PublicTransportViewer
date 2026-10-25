@@ -31,6 +31,12 @@ class MapLibreHomeScreenTest {
     }
 
     @Test
+    fun homeScreen_showsRecenterButton() {
+        setScreen()
+        composeRule.onNodeWithTag("recenter_button").assertIsDisplayed()
+    }
+
+    @Test
     fun selectedVehicle_showsInfoCard() {
         val viewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())
         setScreen(viewModel)
