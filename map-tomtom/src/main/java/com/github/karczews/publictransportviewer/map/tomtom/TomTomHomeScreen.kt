@@ -37,6 +37,7 @@ import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import com.github.karczews.publictransportviewer.ui.home.vehicleIconRes
 import com.github.karczews.publictransportviewer.ui.home.vehicleLabel
 import com.github.karczews.publictransportviewer.ui.home.vehicleTitle
+import com.github.karczews.publictransportviewer.ui.home.visibleRouteDisplay
 import com.tomtom.sdk.init.TomTomSdk
 import com.tomtom.sdk.location.GeoPoint
 import com.tomtom.sdk.map.display.MapLocationInfrastructure
@@ -123,7 +124,7 @@ fun TomTomHomeScreen(
                 )
             }
 
-            routeDisplay?.let { route ->
+            visibleRouteDisplay(routeDisplay, vehicles, selectedVehicleId)?.let { route ->
                 RouteOverlay(route = route)
             }
 

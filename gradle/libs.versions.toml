@@ -17,6 +17,7 @@ coroutinesTest = "1.11.0"
 koin = "4.2.2"
 koinCompiler = "1.2.1"
 tomtomSdk = "2.6.3"
+maplibreCompose = "0.20.0"
 testRunner = "1.7.0"
 
 [libraries]
@@ -52,6 +53,10 @@ koin-androidx-workmanager = { group = "io.insert-koin", name = "koin-androidx-wo
 koin-annotations = { group = "io.insert-koin", name = "koin-annotations", version.ref = "koin" }
 tomtom-sdk-init = { group = "com.tomtom.sdk", name = "init", version.ref = "tomtomSdk" }
 tomtom-sdk-map-display-compose = { group = "com.tomtom.sdk.maps", name = "map-display-compose-standard", version.ref = "tomtomSdk" }
+maplibre-compose = { group = "org.maplibre.compose", name = "maplibre-compose", version.ref = "maplibreCompose" }
+maplibre-compose-location = { group = "org.maplibre.compose", name = "location", version.ref = "maplibreCompose" }
+maplibre-compose-runtime-opengl = { group = "org.maplibre.compose", name = "maplibre-compose-runtime-opengl-android", version.ref = "maplibreCompose" }
+maplibre-compose-runtime-vulkan = { group = "org.maplibre.compose", name = "maplibre-compose-runtime-vulkan-android", version.ref = "maplibreCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -2,6 +2,7 @@ package com.github.karczews.publictransportviewer.ui.home
 
 import android.util.Log
 import com.github.karczews.publictransportviewer.map.MapSdk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -41,12 +42,18 @@ class MapSdkInitializer(
         // could otherwise run before the entry exists, leaving the failure cached forever.
         lateinit var deferred: Deferred<Result<Unit>>
         deferred = scope.async(start = CoroutineStart.LAZY) {
-            runCatching { initialize(sdk) }
-                .onSuccess { ready += sdk.id }
-                .onFailure { error ->
-                    inFlight.remove(sdk.id, deferred)
-                    onFailure(sdk, error)
-                }
+            try {
+                initialize(sdk)
+                ready += sdk.id
+                Result.success(Unit)
+            } catch (error: CancellationException) {
+                inFlight.remove(sdk.id, deferred)
+                throw error
+            } catch (error: Throwable) {
+                inFlight.remove(sdk.id, deferred)
+                onFailure(sdk, error)
+                Result.failure(error)
+            }
         }
         inFlight[sdk.id] = deferred
         deferred.start()

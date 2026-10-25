@@ -38,6 +38,21 @@ android {
     }
     buildFeatures {
         compose = true
+        // Per-flavor app_name; set explicitly, AGP 9 may default it off.
+        resValues = true
+    }
+    flavorDimensions += "mapSdk"
+    productFlavors {
+        create("tomtom") {
+            dimension = "mapSdk"
+            applicationIdSuffix = ".tomtom"
+            resValue("string", "app_name", "PTV TomTom")
+        }
+        create("maplibre") {
+            dimension = "mapSdk"
+            applicationIdSuffix = ".maplibre"
+            resValue("string", "app_name", "PTV MapLibre")
+        }
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
@@ -57,7 +72,8 @@ koinCompiler {
 
 dependencies {
     implementation(project(":core"))
-    implementation(project(":map-tomtom"))
+    "tomtomImplementation"(project(":map-tomtom"))
+    "maplibreImplementation"(project(":map-maplibre"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

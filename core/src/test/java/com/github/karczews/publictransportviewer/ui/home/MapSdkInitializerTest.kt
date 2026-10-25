@@ -3,6 +3,7 @@ package com.github.karczews.publictransportviewer.ui.home
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.github.karczews.publictransportviewer.map.MapSdk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,8 +14,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -121,5 +124,28 @@ class MapSdkInitializerTest {
         assertNotNull(reported)
         assertSame(sdk, reported!!.first)
         assertSame(failure, reported!!.second)
+    }
+
+    @Test
+    fun ensureInitialized_rethrowsCancellationWithoutReportingFailure() = runTest {
+        val cancellation = CancellationException("scope torn down")
+        var reported: Throwable? = null
+        val initializer = MapSdkInitializer(
+            scope = backgroundScope,
+            initialize = { throw cancellation },
+            onFailure = { _, error -> reported = error },
+        )
+
+        var thrown: CancellationException? = null
+        try {
+            initializer.ensureInitialized(sdk).await()
+            fail("expected CancellationException")
+        } catch (e: CancellationException) {
+            thrown = e
+        }
+
+        assertEquals("scope torn down", thrown?.message)
+        assertNull(reported)
+        assertFalse(initializer.isReady("a"))
     }
 }
