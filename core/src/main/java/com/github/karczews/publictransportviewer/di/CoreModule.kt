@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit
  */
 @Module
 @ComponentScan("com.github.karczews.publictransportviewer")
-class AppModule {
+class CoreModule {
 
     @Single
     fun okHttpClient(): OkHttpClient = OkHttpClient.Builder()

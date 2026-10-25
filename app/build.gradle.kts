@@ -1,8 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.room)
     alias(libs.plugins.koin.compiler)
 }
 
@@ -50,10 +48,9 @@ android {
     buildTypes.configureEach {
         buildConfigField("String", "TOMTOM_API_KEY", "\"$tomtomApiKey\"")
     }
-}
-
-room {
-    schemaDirectory("$projectDir/schemas")
+    lint {
+        checkDependencies = true
+    }
 }
 
 koinCompiler {
@@ -65,6 +62,7 @@ koinCompiler {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -75,12 +73,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
     implementation(libs.work.runtime.ktx)
-    implementation(libs.okhttp)
-    implementation(libs.gtfs.rt.bindings)
     implementation(libs.tomtom.sdk.init) {
         // TomTom pulls protobuf-javalite which duplicates classes in protobuf-java
         // (brought by org.mobilitydata:gtfs-realtime-bindings). protobuf-java is the
@@ -95,9 +88,6 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.androidx.workmanager)
     implementation(libs.koin.annotations)
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.gtfs.rt.bindings)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

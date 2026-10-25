@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "PublicTransportViewer"
 include(":app")
+include(":core")

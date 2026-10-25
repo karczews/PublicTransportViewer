@@ -28,7 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.karczews.publictransportviewer.R
+import com.github.karczews.publictransportviewer.core.R
 import com.github.karczews.publictransportviewer.data.model.RouteDisplayData
 import com.github.karczews.publictransportviewer.data.model.RouteStop
 import com.github.karczews.publictransportviewer.data.model.VehiclePosition
