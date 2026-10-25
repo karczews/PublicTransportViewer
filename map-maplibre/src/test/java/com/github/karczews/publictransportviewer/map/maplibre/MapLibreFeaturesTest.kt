@@ -79,6 +79,8 @@ class MapLibreFeaturesTest {
         assertEquals(3, coordinates.size)
         assertEquals(19.4500, coordinates.first().longitude, 0.0)
         assertEquals(51.7550, coordinates.first().latitude, 0.0)
+        assertEquals(19.4560, coordinates[1].longitude, 0.0)
+        assertEquals(51.7592, coordinates[1].latitude, 0.0)
         assertEquals(19.4600, coordinates.last().longitude, 0.0)
         assertEquals(51.7620, coordinates.last().latitude, 0.0)
     }
@@ -90,10 +92,20 @@ class MapLibreFeaturesTest {
     }
 
     @Test
-    fun routeStopFeatures_mapsNames() {
-        val names = routeStopFeatures(routeForTram10).features.map { it.properties["name"]?.jsonPrimitive?.content }
+    fun routeStopFeatures_mapsIdsNamesAndPositions() {
+        val features = routeStopFeatures(routeForTram10).features
 
-        assertEquals(listOf("Piotrkowska Centrum", "Plac Wolności", "Legionów"), names)
+        assertEquals(listOf("s1", "s2", "s3"), features.map { it.properties["id"]?.jsonPrimitive?.content })
+        assertEquals(
+            listOf("Piotrkowska Centrum", "Plac Wolności", "Legionów"),
+            features.map { it.properties["name"]?.jsonPrimitive?.content },
+        )
+        assertEquals(19.4500, features[0].geometry.coordinates.longitude, 0.0)
+        assertEquals(51.7550, features[0].geometry.coordinates.latitude, 0.0)
+        assertEquals(19.4560, features[1].geometry.coordinates.longitude, 0.0)
+        assertEquals(51.7592, features[1].geometry.coordinates.latitude, 0.0)
+        assertEquals(19.4600, features[2].geometry.coordinates.longitude, 0.0)
+        assertEquals(51.7620, features[2].geometry.coordinates.latitude, 0.0)
     }
 
     @Test

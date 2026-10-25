@@ -52,16 +52,6 @@ The TomTom renderer (`:map-tomtom`) uses the **TomTom Maps SDK for Android** Jet
 integration (`map-display-compose-standard`). `TomTomMapSdk.initialize()` initializes the SDK with
 an API key provided via the `tomtomApiKey` Gradle property (injected into `:map-tomtom`'s `BuildConfig`).
 
-### MapLibre
-
-The MapLibre renderer (`:map-maplibre`) uses **maplibre-compose** (`org.maplibre.compose`, backed by
-`maplibre-native-ffi`) with the Maptoolkit community style `https://styles.maptoolkit.org/summer.json`
-(no API key). Map content is declarative: GeoJSON sources plus Symbol/Line layers inside
-`rememberMapState(content = { … })`. Our own map `overlay` draws the mandatory Maptoolkit logo
-(≥ 24dp, bottom-start) and keeps the library's attribution button (bottom-end); it replaces
-`MapOverlay.Default`, which also drops the MapLibre logo. Exactly one native render runtime
-(OpenGL by default, Vulkan optional) is declared in `map-maplibre/build.gradle.kts`.
-
 Key TomTom Compose components used:
 
 | Component | Purpose |
@@ -75,6 +65,17 @@ Key TomTom Compose components used:
 
 The map is configured in `MapDisplayInfrastructure` which binds `TomTomSdk.sdkContext`
 and `TomTomSdk.locationProvider` to the map display.
+
+### MapLibre
+
+The MapLibre renderer (`:map-maplibre`) uses **maplibre-compose** (`org.maplibre.compose`, backed by
+`maplibre-native-ffi`) with the Maptoolkit community style `https://styles.maptoolkit.org/summer.json`
+(no API key). Map content is declarative: GeoJSON sources plus Symbol/Line layers inside
+`rememberMapState(content = { … })`. Our own map `overlay` draws the mandatory Maptoolkit logo
+(≥ 24dp, bottom-start) and keeps the library's attribution button (bottom-end). Replacing
+`MapOverlay.Default` drops the MapLibre logo (along with its scale bar and compass); the custom
+overlay keeps the Maptoolkit logo and attribution button instead. Exactly one native render runtime
+(OpenGL by default, Vulkan optional) is declared in `map-maplibre/build.gradle.kts`.
 
 ## Data Sources and Formats
 
@@ -436,7 +437,7 @@ sequenceDiagram
     participant SDS as GtfsStaticDataSource
     participant Act as MainActivity
     participant Host as MapSdkHost
-    participant SDK as TomTomSdk
+    participant SDK as MapSdk
 
     OS->>App: onCreate()
     App->>WM: Schedule weekly GtfsRefreshWorker
@@ -451,9 +452,9 @@ sequenceDiagram
     OS->>Act: onCreate()
     Act->>Act: Render NavigationSuiteScaffold
     Act->>Host: Home tab shown
-    Host->>SDK: TomTomMapSdk.initialize() → TomTomSdk.initialize(apiKey)
+    Host->>SDK: MapSdk.initialize()
     SDK-->>Host: Ready
-    Host->>Host: Render TomTomHomeScreen
+    Host->>Host: Render SDK HomeScreen
 ```
 
 ## UI Layer
@@ -473,7 +474,7 @@ Built entirely with **Jetpack Compose** and **Material 3**.
 ```mermaid
 stateDiagram-v2
     [*] --> Loading: App launch
-    Loading --> Home: TomTomSdk initialized
+    Loading --> Home: map SDK initialized
 
     state NavigationSuiteScaffold {
         Home --> Stops: Tab tap

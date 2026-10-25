@@ -54,6 +54,7 @@ import org.maplibre.compose.layers.SymbolLayer
 import org.maplibre.compose.location.LocationPermission
 import org.maplibre.compose.location.rememberDefaultLocationProvider
 import org.maplibre.compose.location.rememberLocationState
+import org.maplibre.compose.location.rememberSystemSettingsLauncher
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.map.rememberMapState
 import org.maplibre.compose.overlay.ExpandingAttributionButton
@@ -74,7 +75,8 @@ private val LABEL_FONT = const(listOf("Noto Sans Regular"))
  *
  * Maptoolkit attribution is mandatory: its logo (>= 24dp, links to maptoolkit.org) and the
  * style's attribution button must stay visible and uncovered. Our own overlay replaces
- * MapOverlay.Default, which also drops the MapLibre logo that would crowd it.
+ * MapOverlay.Default (which bundles the MapLibre logo, scale bar and compass); ours keeps
+ * only the Maptoolkit logo and the attribution button.
  */
 @Composable
 internal fun MapLibreHomeScreen(
@@ -104,6 +106,7 @@ internal fun MapLibreHomeScreen(
     )
     val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
+    val settingsLauncher = rememberSystemSettingsLauncher()
 
     Box(modifier.fillMaxSize()) {
         MaplibreMap(
@@ -133,7 +136,9 @@ internal fun MapLibreHomeScreen(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .safeDrawingPadding()
-                    .padding(bottom = 48.dp)
+                    // 112dp clears the 48dp recenter button sitting 56dp above the bottom edge,
+                    // so a wide card on a narrow screen doesn't slide under it.
+                    .padding(bottom = 112.dp)
                     .testTag("vehicle_info_card"),
             ) {
                 Text(vehicleTitle(vehicle), Modifier.padding(12.dp))
@@ -143,7 +148,12 @@ internal fun MapLibreHomeScreen(
         FilledTonalIconButton(
             onClick = {
                 if (!hasLocationPermission) {
-                    locationState.requestPermission()
+                    val permission = locationState.permission
+                    if (permission is LocationPermission.NotGranted && permission.canRequest == false) {
+                        settingsLauncher.openApplicationSettings()
+                    } else {
+                        locationState.requestPermission()
+                    }
                     return@FilledTonalIconButton
                 }
                 locationState.lastLocation?.let { location ->
@@ -190,10 +200,13 @@ private fun RouteLayers(route: RouteDisplayData) {
     }
 
     val stopSource = rememberGeoJsonSource(GeoJsonData.Features(routeStopFeatures(route)))
+    // Stops must stay visible next to vehicles and each other in dense areas (TomTom shows every
+    // stop marker): icons ignore collision, and a colliding label may drop while its dot stays.
     SymbolLayer(
         id = "route-stops",
         source = stopSource,
         iconImage = image(painterResource(CoreR.drawable.ic_stop_dot)),
+        iconAllowOverlap = const(true),
         textField = format(span(feature["name"].asString())),
         textFont = LABEL_FONT,
         textColor = const(Color.DarkGray),
@@ -202,6 +215,7 @@ private fun RouteLayers(route: RouteDisplayData) {
         textSize = const(10.sp),
         textAnchor = const(SymbolAnchor.Top),
         textOffset = textOffset(0f.em, 0.8f.em),
+        textOptional = const(true),
         // A stop tap keeps the selection (TomTom's stop click is a no-op too).
         onClick = { ClickResult.Consume },
     )
