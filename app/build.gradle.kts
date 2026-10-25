@@ -15,6 +15,8 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        testInstrumentationRunner = "com.github.karczews.publictransportviewer.KoinTestRunner"
+
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
         }
@@ -72,5 +74,10 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.androidx.workmanager)
     implementation(libs.koin.annotations)
+    androidTestImplementation(project(":core-testing"))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
