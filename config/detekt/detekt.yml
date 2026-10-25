@@ -13,8 +13,9 @@ complexity:
 empty-blocks:
   EmptyFunctionBlock:
     active: true
-    # Test fakes legitimately no-op the DAO methods they don't exercise.
-    ignoreOverridden: true
+    # Test fakes legitimately no-op the DAO methods they don't exercise; keep
+    # the rule strict for production code.
+    excludes: ['**/test/**', '**/androidTest/**']
 
 naming:
   FunctionNaming:
