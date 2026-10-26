@@ -66,6 +66,8 @@ object ScreenshotGolden {
                 lastActual?.recycle()
                 lastActual = actual
                 lastMismatch = mismatchFraction(golden, actual, allowedMismatchFraction)
+                // Per-poll progress: the collected logcat shows whether a cold map is converging.
+                Log.i(TAG, "Screenshot $goldenAssetPath mismatch ${pct(lastMismatch)} (attempt $attempts).")
                 if (lastMismatch <= allowedMismatchFraction) {
                     Log.i(
                         TAG,

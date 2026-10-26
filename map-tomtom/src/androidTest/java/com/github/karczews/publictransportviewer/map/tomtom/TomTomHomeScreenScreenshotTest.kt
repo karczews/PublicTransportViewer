@@ -38,6 +38,9 @@ class TomTomHomeScreenScreenshotTest {
         ScreenshotGolden.awaitMatchesGolden(
             capture = { composeRule.onRoot().captureToImage() },
             goldenAssetPath = "screenshots/tomtom_home_default.png",
+            // TomTom vector tiles refine progressively and a cold start on software rendering
+            // takes well beyond the default budget; warm runs still match on the first captures.
+            timeoutMs = 120_000,
         )
     }
 
@@ -50,6 +53,7 @@ class TomTomHomeScreenScreenshotTest {
         ScreenshotGolden.awaitMatchesGolden(
             capture = { composeRule.onRoot().captureToImage() },
             goldenAssetPath = "screenshots/tomtom_home_selected.png",
+            timeoutMs = 120_000,
         )
     }
 

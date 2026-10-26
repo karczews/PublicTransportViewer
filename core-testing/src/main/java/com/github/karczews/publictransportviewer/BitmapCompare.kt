@@ -48,6 +48,7 @@ internal fun saveToSharedScreenshots(bitmap: Bitmap, fileName: String, suffix: S
         )
     }
         .getOrElse {
+            rethrowFatal(it)
             Log.w(TAG, "Could not create shared screenshot entry: $name.", it)
             return
         }
@@ -57,6 +58,7 @@ internal fun saveToSharedScreenshots(bitmap: Bitmap, fileName: String, suffix: S
         } ?: false
     }
         .getOrElse {
+            rethrowFatal(it)
             Log.w(TAG, "Could not write screenshot to shared storage: $name.", it)
             false
         }
@@ -74,12 +76,20 @@ private fun contentValues(name: String) =
         put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/screenshots")
     }
 
+/** VM-fatal errors must never be swallowed by diagnostic storage handling. */
+private fun rethrowFatal(t: Throwable) {
+    if (t is Error) throw t
+}
+
 private fun deleteSharedScreenshot(resolver: ContentResolver, uri: Uri, name: String) {
     runCatching { resolver.delete(uri, null, null) }
         .onSuccess { deleted ->
             if (deleted == 0) Log.w(TAG, "Shared screenshot row had nothing to delete: $name.")
         }
-        .onFailure { Log.w(TAG, "Could not delete incomplete shared screenshot: $name.", it) }
+        .onFailure {
+            rethrowFatal(it)
+            Log.w(TAG, "Could not delete incomplete shared screenshot: $name.", it)
+        }
 }
 
 /** A still-loading map is a near-uniform background; loaded maps vary far more. */
