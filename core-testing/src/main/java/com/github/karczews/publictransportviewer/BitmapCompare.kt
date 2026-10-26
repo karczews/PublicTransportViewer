@@ -1,8 +1,10 @@
 package com.github.karczews.publictransportviewer
 
+import android.content.ContentResolver
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
@@ -30,34 +32,54 @@ private const val SHARED_PNG_QUALITY = 100
  * CI pulls failure artifacts from shared storage instead. Failures here must not mask the screenshot assertion being
  * reported, so they only log.
  */
-@Suppress("TooGenericExceptionCaught")
+/**
+ * Mirrors a screenshot PNG to shared storage (`Pictures/screenshots`), where it survives the APK uninstall that
+ * `connectedDebugAndroidTest` performs after its run. The app-private external files dir is wiped by that uninstall, so
+ * CI pulls failure artifacts from shared storage instead. A row is only kept when the PNG write verifiably succeeds;
+ * every failure path deletes the incomplete row (logging when even the delete fails) so artifact collection never picks
+ * up a partial file. Failures here must not mask the screenshot assertion being reported, so they only log.
+ */
 internal fun saveToSharedScreenshots(bitmap: Bitmap, fileName: String, suffix: String) {
-    try {
-        val name = fileName.removeSuffix(".png") + "_$suffix.png"
-        val values =
-            ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, name)
-                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/screenshots")
-            }
-        val resolver = InstrumentationRegistry.getInstrumentation().targetContext.contentResolver
-        val uri =
-            requireNotNull(
-                resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values),
-            )
-        val written =
-            resolver.openOutputStream(uri)?.use { stream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, SHARED_PNG_QUALITY, stream)
-            } ?: false
-        if (!written) {
-            resolver.delete(uri, null, null)
-            Log.w(TAG, "Could not write screenshot to shared storage: $name")
+    val name = fileName.removeSuffix(".png") + "_$suffix.png"
+    val resolver = InstrumentationRegistry.getInstrumentation().targetContext.contentResolver
+    val uri = runCatching {
+        requireNotNull(
+            resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues(name)),
+        )
+    }
+        .getOrElse {
+            Log.w(TAG, "Could not create shared screenshot entry: $name.", it)
             return
         }
-        Log.i(TAG, "Mirrored screenshot to shared storage: $name")
-    } catch (e: Exception) {
-        Log.w(TAG, "Could not mirror screenshot to shared storage.", e)
+    val written = runCatching {
+        resolver.openOutputStream(uri)?.use { stream ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, SHARED_PNG_QUALITY, stream)
+        } ?: false
     }
+        .getOrElse {
+            Log.w(TAG, "Could not write screenshot to shared storage: $name.", it)
+            false
+        }
+    if (!written) {
+        deleteSharedScreenshot(resolver, uri, name)
+        return
+    }
+    Log.i(TAG, "Mirrored screenshot to shared storage: $name")
+}
+
+private fun contentValues(name: String) =
+    ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, name)
+        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+        put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/screenshots")
+    }
+
+private fun deleteSharedScreenshot(resolver: ContentResolver, uri: Uri, name: String) {
+    runCatching { resolver.delete(uri, null, null) }
+        .onSuccess { deleted ->
+            if (deleted == 0) Log.w(TAG, "Shared screenshot row had nothing to delete: $name.")
+        }
+        .onFailure { Log.w(TAG, "Could not delete incomplete shared screenshot: $name.", it) }
 }
 
 /** A still-loading map is a near-uniform background; loaded maps vary far more. */
