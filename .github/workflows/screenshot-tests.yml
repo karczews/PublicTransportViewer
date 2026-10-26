@@ -23,6 +23,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      - name: Install emulator host libraries
+        # The emulator binary links libpulse at startup (even with -no-audio) and
+        # recent runner images don't ship it, failing qemu boot with a missing
+        # libpulse.so.0 error.
+        run: sudo apt-get update && sudo apt-get install -y libpulse0t64
+
       - name: Run screenshot tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
