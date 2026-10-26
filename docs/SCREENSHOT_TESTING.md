@@ -50,8 +50,9 @@ native Surface/GL views that Robolectric/Layoutlib leave blank.
 TomTom tests (including screenshots) skip via `Assume` when `BuildConfig.TOMTOM_API_KEY` is
 blank. Locally, put `tomtomApiKey=...` in `~/.gradle/gradle.properties`; on CI, set the
 `TOMTOM_API_KEY` secret (passed as `-PtomtomApiKey`). Without the secret the TomTom tests skip
-and stay green; with the secret but no TomTom goldens yet, they fail once with instructions to
-record them.
+and stay green. TomTom goldens live in `map-tomtom/src/androidTest/assets/screenshots/` like the
+MapLibre ones; re-record them with a key following the steps above (TomTom captures need no
+status-bar demo mode on API 34 — only the app window is captured).
 
 ## CI
 
