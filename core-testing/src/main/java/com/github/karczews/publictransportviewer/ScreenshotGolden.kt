@@ -41,7 +41,7 @@ object ScreenshotGolden {
         allowedMismatchFraction: Double = DEFAULT_ALLOWED_MISMATCH_FRACTION,
     ) {
         if (isRecordMode()) {
-            val recorded = awaitSettledCapture(capture)
+            val recorded = awaitSettledCapture(capture, timeoutMs)
             val out = saveToExternal(recorded, goldenFileName(goldenAssetPath), "recorded")
             recorded.recycle()
             Log.i(TAG, "Recorded screenshot for $goldenAssetPath -> $out. Pull with adb and commit.")
