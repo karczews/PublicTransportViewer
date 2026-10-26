@@ -26,7 +26,11 @@ jobs:
       - name: Install emulator host libraries
         # The emulator binary links libpulse at startup (even with -no-audio) and its Qt UI
         # needs libxcb-cursor0; recent runner images ship neither, failing qemu boot.
-        run: sudo apt-get update && sudo apt-get install -y libpulse0 libxcb-cursor0
+        # /dev/kvm exists but is group-restricted: opening it to everyone is immediate,
+        # unlike gpasswd which needs a re-login to take effect in CI.
+        run: |
+          sudo apt-get update && sudo apt-get install -y libpulse0 libxcb-cursor0
+          sudo chmod 666 /dev/kvm || true
 
       - name: Run screenshot tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
