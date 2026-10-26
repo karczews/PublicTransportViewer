@@ -19,7 +19,9 @@ native Surface/GL views that Robolectric/Layoutlib leave blank.
 
 ## Recording goldens locally
 
-1. Start an emulator (canonical config: Pixel 6, API 34, 1080x2400 — goldens are size-sensitive).
+1. Start an emulator matching the canonical CI config (Pixel 6, API 34, google_apis —
+   goldens are size-sensitive: API 34 captures the 1080x2209 app window, newer APIs capture
+   the full 1080x2400 screen including system bars).
 2. Fix the status bar, matching CI:
    ```bash
    adb shell settings put global sysui_demo_allowed 1
