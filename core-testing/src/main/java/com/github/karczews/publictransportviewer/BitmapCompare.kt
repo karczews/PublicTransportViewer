@@ -45,8 +45,14 @@ internal fun saveToSharedScreenshots(bitmap: Bitmap, fileName: String, suffix: S
             requireNotNull(
                 resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values),
             )
-        resolver.openOutputStream(uri)?.use { stream ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, SHARED_PNG_QUALITY, stream)
+        val written =
+            resolver.openOutputStream(uri)?.use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, SHARED_PNG_QUALITY, stream)
+            } ?: false
+        if (!written) {
+            resolver.delete(uri, null, null)
+            Log.w(TAG, "Could not write screenshot to shared storage: $name")
+            return
         }
         Log.i(TAG, "Mirrored screenshot to shared storage: $name")
     } catch (e: Exception) {
