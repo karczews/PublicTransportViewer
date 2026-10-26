@@ -8,7 +8,10 @@ on:
 
 jobs:
   screenshot-tests:
-    runs-on: ubuntu-latest
+    # Pinned to 24.04: the emulator needs host audio libs (libpulse) that newer
+    # ubuntu-latest images may lack, which fails qemu boot with a missing
+    # libpulse.so.0 error.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
