@@ -52,31 +52,43 @@ object ScreenshotGolden {
         var attempts = 0
         var lastMismatch = FULL_MISMATCH
         var lastActual: Bitmap? = null
-        while (true) {
-            val actual = freshCapture(capture)
-            attempts++
-            if (actual.width != golden.width || actual.height != golden.height) {
-                failSizeMismatch(actual, golden, goldenAssetPath)
+        var capturesFailed = 0
+        while (SystemClock.uptimeMillis() < deadline) {
+            val actual = tryCapture(capture)
+            if (actual == null) {
+                capturesFailed++
+            } else {
+                attempts++
+                if (actual.width != golden.width || actual.height != golden.height) {
+                    failSizeMismatch(actual, golden, goldenAssetPath)
+                }
+                lastActual?.recycle()
+                lastActual = actual
+                lastMismatch = mismatchFraction(golden, actual, allowedMismatchFraction)
+                if (lastMismatch <= allowedMismatchFraction) {
+                    Log.i(
+                        TAG,
+                        "Screenshot $goldenAssetPath matches after $attempts capture(s) " +
+                            "(mismatch ${pct(lastMismatch)}).",
+                    )
+                    actual.recycle()
+                    golden.recycle()
+                    return
+                }
             }
-            lastActual?.recycle()
-            lastActual = actual
-            lastMismatch = mismatchFraction(golden, actual, allowedMismatchFraction)
-            if (lastMismatch <= allowedMismatchFraction) {
-                Log.i(
-                    TAG,
-                    "Screenshot $goldenAssetPath matches after $attempts capture(s) " +
-                        "(mismatch ${pct(lastMismatch)}).",
-                )
-                actual.recycle()
-                golden.recycle()
-                return
-            }
-            if (SystemClock.uptimeMillis() >= deadline) break
             SystemClock.sleep(pollMs)
+        }
+        val actual = lastActual
+        if (actual == null) {
+            golden.recycle()
+            throw AssertionError(
+                "Screenshot $goldenAssetPath could not be captured " +
+                    "($capturesFailed failed capture(s)); no comparison was possible.",
+            )
         }
         failStillDifferent(
             golden,
-            requireNotNull(lastActual),
+            actual,
             goldenAssetPath,
             attempts,
             lastMismatch,
@@ -102,6 +114,20 @@ private const val PNG_QUALITY = 100
 private fun freshCapture(capture: () -> ImageBitmap): Bitmap =
     capture().asAndroidBitmap().copy(Bitmap.Config.ARGB_8888, false)
 
+/**
+ * Captures once, returning null when the capture itself transiently fails (e.g. a forceRedraw timeout while the map
+ * surface is busy). Any failure is retried by the caller's poll loop, so the broad catch is intentional: a single bad
+ * frame must not fail the whole test.
+ */
+@Suppress("TooGenericExceptionCaught")
+private fun tryCapture(capture: () -> ImageBitmap): Bitmap? =
+    try {
+        freshCapture(capture)
+    } catch (e: Exception) {
+        Log.w(TAG, "Screenshot capture failed (${e.message}); retrying.")
+        null
+    }
+
 private fun pct(fraction: Double): String = "%.2f%%".format(fraction * PERCENT_FACTOR)
 
 private fun goldenFileName(goldenAssetPath: String): String = File(goldenAssetPath).name
@@ -118,16 +144,17 @@ private fun awaitSettledCapture(
     val deadline = SystemClock.uptimeMillis() + timeoutMs
     var previous: Bitmap? = null
     var settled: Bitmap? = null
-    while (SystemClock.uptimeMillis() < deadline) {
-        val current = freshCapture(capture)
-        val prev = previous
-        previous = current
-        if (prev != null) {
-            val drift = mismatchFraction(prev, current, STABLE_THRESHOLD_FRACTION)
-            prev.recycle()
-            if (drift <= STABLE_THRESHOLD_FRACTION && !isBlankCapture(current)) {
-                settled = current
-                break
+    while (settled == null && SystemClock.uptimeMillis() < deadline) {
+        val current = tryCapture(capture)
+        if (current != null) {
+            val prev = previous
+            previous = current
+            if (prev != null) {
+                val drift = mismatchFraction(prev, current, STABLE_THRESHOLD_FRACTION)
+                prev.recycle()
+                if (drift <= STABLE_THRESHOLD_FRACTION && !isBlankCapture(current)) {
+                    settled = current
+                }
             }
         }
         SystemClock.sleep(pollMs)

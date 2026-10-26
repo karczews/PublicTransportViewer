@@ -49,14 +49,13 @@ jobs:
             adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
             adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
             adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-            # Keep going after a test failure so actual/diff PNGs are still pulled below.
-            set +e
-            ./gradlew :map-maplibre:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}"
-            echo "GRADLE_STATUS=$?" >> "$GITHUB_ENV"
+            # The gradle line must not abort the script: actual/diff PNGs are pulled below
+            # even when tests fail, and the recorded status is used for the final exit.
+            ./gradlew :map-maplibre:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}" || echo "GRADLE_STATUS=1" >> "$GITHUB_ENV"
             # Pull failure artifacts (actual/diff PNGs) saved by ScreenshotGolden.
             adb pull /storage/emulated/0/Android/data/com.github.karczews.publictransportviewer.map.maplibre.test/files/screenshots screenshots-device/maplibre || true
             adb pull /storage/emulated/0/Android/data/com.github.karczews.publictransportviewer.map.tomtom.test/files/screenshots screenshots-device/tomtom || true
-            exit "$GRADLE_STATUS"
+            exit "${GRADLE_STATUS:-0}"
 
       - uses: actions/upload-artifact@v7
         if: always()
