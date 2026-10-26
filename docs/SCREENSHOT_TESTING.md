@@ -17,12 +17,18 @@ native Surface/GL views that Robolectric/Layoutlib leave blank.
   two consecutive settled, non-blank frames, then saves to the external files dir instead of
   asserting.
 
-## Recording goldens locally
+## Recording goldens
 
-1. Start an emulator matching the canonical CI config (Pixel 6, API 34, google_apis —
-   goldens are size-sensitive: API 34 captures the 1080x2209 app window, newer APIs capture
-   the full 1080x2400 screen including system bars).
-2. Fix the status bar, matching CI:
+Record on the canonical CI config (Pixel 6, API 34, google_apis — goldens are
+size-sensitive: API 34 captures the 1080x2209 app window, newer APIs capture the full
+1080x2400 screen including system bars). Two ways:
+
+- **On CI (recommended, also the only way for TomTom without a local key):** dispatch the
+  `Screenshot Tests` workflow with `record=true`. It runs the tests in record mode and uploads
+  the captures as the `screenshot-device-outputs` artifact — download it, inspect the PNGs,
+  and commit them to `src/androidTest/assets/screenshots/`.
+- **Locally:** start an emulator matching the canonical CI config (see above), then:
+1. Fix the status bar, matching CI:
    ```bash
    adb shell settings put global sysui_demo_allowed 1
    adb shell am broadcast -a com.android.systemui.demo -e command enter
