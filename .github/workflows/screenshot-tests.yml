@@ -24,10 +24,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Install emulator host libraries
-        # The emulator binary links libpulse at startup (even with -no-audio) and
-        # recent runner images don't ship it, failing qemu boot with a missing
-        # libpulse.so.0 error.
-        run: sudo apt-get update && sudo apt-get install -y libpulse0
+        # The emulator binary links libpulse at startup (even with -no-audio) and its Qt UI
+        # needs libxcb-cursor0; recent runner images ship neither, failing qemu boot.
+        run: sudo apt-get update && sudo apt-get install -y libpulse0 libxcb-cursor0
 
       - name: Run screenshot tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -37,7 +36,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-snapshot -no-audio -no-boot-anim -camera-back none
+          emulator-options: -no-window -no-snapshot -no-audio -no-boot-anim -camera-back none
           script: |
             # Fixed status bar (clock/battery/signal) so goldens don't drift.
             adb shell settings put global sysui_demo_allowed 1
