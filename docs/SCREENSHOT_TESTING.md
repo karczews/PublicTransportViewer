@@ -15,7 +15,12 @@ native Surface/GL views that Robolectric/Layoutlib leave blank.
   drift; the per-channel tolerance is 12/255.
 - Record mode (`-Pandroid.testInstrumentationRunnerArguments.recordScreenshots=true`) waits for
   two consecutive settled, non-blank frames, then saves to the external files dir instead of
-  asserting.
+  asserting. If the map never settles before the timeout, the last frame is still saved with a
+  warning — always inspect a recorded image before committing it as golden.
+- Every saved capture (recorded, actual, diff) is also mirrored to shared storage
+  (`Pictures/screenshots`), which survives the APK uninstall that `connectedDebugAndroidTest`
+  performs after its run. CI pulls failure artifacts from there; the app-private external files
+  dir copy is for local `adb pull` convenience.
 
 ## Recording goldens locally
 
@@ -38,10 +43,16 @@ native Surface/GL views that Robolectric/Layoutlib leave blank.
      -e class com.github.karczews.publictransportviewer.map.maplibre.MapLibreHomeScreenScreenshotTest \
      com.github.karczews.publictransportviewer.map.maplibre.test/com.github.karczews.publictransportviewer.KoinTestRunner
    adb pull /storage/emulated/0/Android/data/com.github.karczews.publictransportviewer.map.maplibre.test/files/screenshots/ /tmp/screenshots/
+   # TomTom equivalents:
+   # ./gradlew :map-tomtom:installDebugAndroidTest -PtomtomApiKey="$TOMTOM_API_KEY"
+   # adb shell am instrument -w -e recordScreenshots true \
+   #   -e class com.github.karczews.publictransportviewer.map.tomtom.TomTomHomeScreenScreenshotTest \
+   #   com.github.karczews.publictransportviewer.map.tomtom.test/com.github.karczews.publictransportviewer.KoinTestRunner
+   # adb pull /storage/emulated/0/Android/data/com.github.karczews.publictransportviewer.map.tomtom.test/files/screenshots/ /tmp/screenshots/
    ```
-   (Use `connectedDebugAndroidTest` with the same runner argument instead of raw
-   `am instrument` if you prefer; note Gradle uninstalls the APK afterwards, so pull first when
-   using `am instrument` directly.)
+   (`am instrument` leaves the APKs installed so the pull works; `connectedDebugAndroidTest`
+   uninstalls them afterwards, which is why failure artifacts are also mirrored to shared
+   storage — see above.)
 4. Inspect the PNGs, copy them to `src/androidTest/assets/screenshots/`, and re-run in verify
    mode (plain `connectedDebugAndroidTest`).
 
@@ -57,5 +68,5 @@ status-bar demo mode on API 34 — only the app window is captured).
 ## CI
 
 `screenshot-tests.yml` (wired into `ci.yml`'s gate) boots a Pixel 6 API 34 emulator, fixes the
-status bar as above, runs both map modules' `connectedDebugAndroidTest`, and uploads device
-screenshot outputs plus test reports as artifacts.
+status bar as above, runs both map modules' `connectedDebugAndroidTest`, and uploads the device
+screenshot outputs on every run plus the test reports on failure.

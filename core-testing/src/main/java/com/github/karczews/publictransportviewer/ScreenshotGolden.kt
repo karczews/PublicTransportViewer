@@ -52,9 +52,10 @@ object ScreenshotGolden {
         var attempts = 0
         var lastMismatch = FULL_MISMATCH
         var lastActual: Bitmap? = null
+        var lastCaptureError: Exception? = null
         var capturesFailed = 0
         while (SystemClock.uptimeMillis() < deadline) {
-            val actual = tryCapture(capture)
+            val actual = tryCapture(capture) { lastCaptureError = it }
             if (actual == null) {
                 capturesFailed++
             } else {
@@ -84,6 +85,7 @@ object ScreenshotGolden {
             throw AssertionError(
                 "Screenshot $goldenAssetPath could not be captured " +
                     "($capturesFailed failed capture(s)); no comparison was possible.",
+                lastCaptureError,
             )
         }
         failStillDifferent(
@@ -91,7 +93,6 @@ object ScreenshotGolden {
             actual,
             goldenAssetPath,
             attempts,
-            lastMismatch,
             allowedMismatchFraction,
         )
     }
@@ -117,14 +118,19 @@ private fun freshCapture(capture: () -> ImageBitmap): Bitmap =
 /**
  * Captures once, returning null when the capture itself transiently fails (e.g. a forceRedraw timeout while the map
  * surface is busy). Any failure is retried by the caller's poll loop, so the broad catch is intentional: a single bad
- * frame must not fail the whole test.
+ * frame must not fail the whole test. The last failure is reported through [onError] so a permanently broken capture
+ * still surfaces its cause.
  */
 @Suppress("TooGenericExceptionCaught")
-private fun tryCapture(capture: () -> ImageBitmap): Bitmap? =
+private fun tryCapture(
+    capture: () -> ImageBitmap,
+    onError: (Exception) -> Unit = {},
+): Bitmap? =
     try {
         freshCapture(capture)
     } catch (e: Exception) {
-        Log.w(TAG, "Screenshot capture failed (${e.message}); retrying.")
+        Log.w(TAG, "Screenshot capture failed; retrying.", e)
+        onError(e)
         null
     }
 
@@ -176,9 +182,11 @@ private fun loadGolden(goldenAssetPath: String): Bitmap {
             failMissingGolden(goldenAssetPath, e)
         }
     stream.use { input ->
-        val bitmap = BitmapFactory.decodeStream(input)
-        requireNotNull(bitmap) { "Could not decode golden $goldenAssetPath." }
-        return bitmap.copy(Bitmap.Config.ARGB_8888, false)
+        val decoded = BitmapFactory.decodeStream(input)
+        requireNotNull(decoded) { "Could not decode golden $goldenAssetPath." }
+        val copy = decoded.copy(Bitmap.Config.ARGB_8888, false)
+        decoded.recycle()
+        return copy
     }
 }
 
@@ -192,6 +200,7 @@ private fun saveToExternal(bitmap: Bitmap, fileName: String, suffix: String): St
             ) ?: throw IllegalStateException("No external files dir available.")
     val out = File(dir, "${baseName}_${suffix}.png")
     FileOutputStream(out).use { stream -> bitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, stream) }
+    saveToSharedScreenshots(bitmap, fileName, suffix)
     return out.absolutePath
 }
 
@@ -212,31 +221,30 @@ private fun failStillDifferent(
     lastActual: Bitmap,
     goldenAssetPath: String,
     attempts: Int,
-    lastMismatch: Double,
     allowedMismatchFraction: Double,
 ): Nothing {
+    // Recompute without the early exit so the report shows the true share of differing pixels,
+    // not the partial count the polling loop stopped at.
+    val fullMismatch = mismatchFraction(golden, lastActual, FULL_MISMATCH)
     val actualOut = saveToExternal(lastActual, goldenFileName(goldenAssetPath), "actual")
-    val diffOut =
-        saveToExternal(
-            diffImage(golden, lastActual),
-            goldenFileName(goldenAssetPath),
-            "diff",
-        )
+    val diff = diffImage(golden, lastActual)
+    val diffOut = saveToExternal(diff, goldenFileName(goldenAssetPath), "diff")
+    diff.recycle()
     lastActual.recycle()
     golden.recycle()
     throw AssertionError(
         "Screenshot $goldenAssetPath still differs after $attempts capture(s): " +
-            "${pct(lastMismatch)} pixels mismatch (allowed ${pct(allowedMismatchFraction)}). " +
+            "${pct(fullMismatch)} pixels mismatch (allowed ${pct(allowedMismatchFraction)}). " +
             "Actual: $actualOut Diff (red = changed): $diffOut",
     )
 }
 
 private fun failMissingGolden(goldenAssetPath: String, cause: IOException): Nothing {
     throw AssertionError(
-        "Missing golden $goldenAssetPath. Record it first: " +
+        "Missing golden $goldenAssetPath. To record it, run " +
             "./gradlew :<module>:connectedDebugAndroidTest " +
-            "-Pandroid.testInstrumentationRunnerArguments.recordScreenshots=true, " +
-            "then adb-pull from the device external files dir and commit to " +
+            "-Pandroid.testInstrumentationRunnerArguments.recordScreenshots=true " +
+            "then adb-pull the capture from the device external files dir and commit it to " +
             "src/androidTest/assets/$goldenAssetPath.",
         cause,
     )

@@ -1,7 +1,11 @@
 package com.github.karczews.publictransportviewer
 
+import android.content.ContentValues
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.provider.MediaStore
+import android.util.Log
+import androidx.test.platform.app.InstrumentationRegistry
 
 /** Per-channel absolute difference above which a pixel counts as different. */
 internal const val CHANNEL_TOLERANCE = 12
@@ -16,6 +20,39 @@ internal const val STABLE_THRESHOLD_FRACTION = 0.003
 internal const val BLANK_THRESHOLD_FRACTION = 0.95
 
 internal const val FULL_MISMATCH = 1.0
+
+private const val TAG = "BitmapCompare"
+private const val SHARED_PNG_QUALITY = 100
+
+/**
+ * Mirrors a screenshot PNG to shared storage (`Pictures/screenshots`), where it survives the APK uninstall that
+ * `connectedDebugAndroidTest` performs after its run. The app-private external files dir is wiped by that uninstall, so
+ * CI pulls failure artifacts from shared storage instead. Failures here must not mask the screenshot assertion being
+ * reported, so they only log.
+ */
+@Suppress("TooGenericExceptionCaught")
+internal fun saveToSharedScreenshots(bitmap: Bitmap, fileName: String, suffix: String) {
+    try {
+        val name = fileName.removeSuffix(".png") + "_$suffix.png"
+        val values =
+            ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, name)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/screenshots")
+            }
+        val resolver = InstrumentationRegistry.getInstrumentation().targetContext.contentResolver
+        val uri =
+            requireNotNull(
+                resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values),
+            )
+        resolver.openOutputStream(uri)?.use { stream ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, SHARED_PNG_QUALITY, stream)
+        }
+        Log.i(TAG, "Mirrored screenshot to shared storage: $name")
+    } catch (e: Exception) {
+        Log.w(TAG, "Could not mirror screenshot to shared storage.", e)
+    }
+}
 
 /** A still-loading map is a near-uniform background; loaded maps vary far more. */
 internal fun isBlankCapture(bitmap: Bitmap): Boolean {

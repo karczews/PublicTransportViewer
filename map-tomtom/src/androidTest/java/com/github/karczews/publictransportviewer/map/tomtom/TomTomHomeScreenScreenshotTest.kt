@@ -22,6 +22,10 @@ import org.junit.Test
  * On-device screenshots of the TomTom Home tab. The TomTom SDK needs a real API key, so these tests skip when
  * `BuildConfig.TOMTOM_API_KEY` is blank (e.g. CI without the `TOMTOM_API_KEY` secret). JVM screenshot tools cannot
  * render the native TomTom surface, hence `connectedAndroidTest` with committed goldens (see [ScreenshotGolden]).
+ *
+ * Selection goes through [HomeViewModel.onVehicleSelected], the same callback a marker tap invokes. That covers the
+ * app-owned selected state (route polyline plus stop markers); the SDK-owned marker balloon only appears on a physical
+ * marker tap, which has no stable test hook, so these goldens intentionally capture the overlay without it.
  */
 class TomTomHomeScreenScreenshotTest {
 
