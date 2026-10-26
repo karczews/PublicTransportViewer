@@ -5,19 +5,6 @@ on:
     secrets:
       TOMTOM_API_KEY:
         required: false
-    inputs:
-      record:
-        description: 'Record goldens instead of verifying them'
-        required: false
-        type: boolean
-        default: false
-  workflow_dispatch:
-    inputs:
-      record:
-        description: 'Record goldens instead of verifying them'
-        required: false
-        type: boolean
-        default: true
 
 jobs:
   screenshot-tests:
@@ -64,7 +51,7 @@ jobs:
             adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
             # The gradle line must not abort the script: actual/diff PNGs are pulled below
             # even when tests fail, and the recorded status is used for the final exit.
-            ./gradlew :map-maplibre:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}" -Pandroid.testInstrumentationRunnerArguments.recordScreenshots="${{ inputs.record }}" || echo "GRADLE_STATUS=1" >> "$GITHUB_ENV"
+            ./gradlew :map-maplibre:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}" || echo "GRADLE_STATUS=1" >> "$GITHUB_ENV"
             # Pull failure artifacts (actual/diff PNGs) saved by ScreenshotGolden.
             adb pull /storage/emulated/0/Android/data/com.github.karczews.publictransportviewer.map.maplibre.test/files/screenshots screenshots-device/maplibre || true
             adb pull /storage/emulated/0/Android/data/com.github.karczews.publictransportviewer.map.tomtom.test/files/screenshots screenshots-device/tomtom || true
