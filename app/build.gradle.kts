@@ -4,6 +4,18 @@ plugins {
     alias(libs.plugins.koin.compiler)
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.dependency.guard)
+    alias(libs.plugins.dependency.analysis)
+}
+
+dependencyGuard {
+    // One baseline per flavor; each covers that flavor's full transitive closure.
+    configuration("tomtomReleaseRuntimeClasspath") {
+        allowedFilter = { !it.contains("junit") && !it.contains("espresso") }
+    }
+    configuration("maplibreReleaseRuntimeClasspath") {
+        allowedFilter = { !it.contains("junit") && !it.contains("espresso") }
+    }
 }
 
 android {
@@ -97,27 +109,17 @@ dependencies {
     implementation(project(":core"))
     "tomtomImplementation"(project(":map-tomtom"))
     "maplibreImplementation"(project(":map-maplibre"))
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.work.runtime.ktx)
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.androidx.workmanager)
     implementation(libs.koin.annotations)
-    androidTestImplementation(project(":core-testing"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    androidTestRuntimeOnly(project(":core-testing"))
     debugImplementation(libs.androidx.compose.ui.tooling)
     detektPlugins(libs.detekt.compose.rules)
 }

@@ -17,3 +17,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - run: ./gradlew assembleDebug -PtomtomApiKey=""
+
+      # Room exports schemas to core/schemas on compile (KSP). Fail if the checked-in
+      # schemas don't match what the entities generate: either the schema for the
+      # declared database version is missing, or a schema file changed and wasn't committed.
+      - name: Check Room schemas are up to date
+        run: |
+          version=$(grep -oE 'version = [0-9]+' core/src/main/java/com/github/karczews/publictransportviewer/data/db/GtfsDatabase.kt | grep -oE '[0-9]+')
+          schema="core/schemas/com.github.karczews.publictransportviewer.data.db.GtfsDatabase/${version}.json"
+          if [ ! -f "$schema" ]; then
+            echo "::error::Missing Room schema for GtfsDatabase version $version (expected $schema)."
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain -- core/schemas)" ]; then
+            echo "::error::Room schemas in core/schemas/ are out of date."
+            git status --porcelain -- core/schemas
+            echo "Run './gradlew :core:assembleDebug' locally and commit the updated schemas."
+            exit 1
+          fi
