@@ -47,6 +47,9 @@ dependencies {
     implementation(libs.koin.android)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    // ImageBitmap is part of ScreenshotGolden's public API, so ui-graphics stays visible to consumers.
+    api(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.test.runner)
     detektPlugins(libs.detekt.compose.rules)
 }
