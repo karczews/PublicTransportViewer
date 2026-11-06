@@ -1,0 +1,52 @@
+name: Size Report
+
+on:
+  workflow_call:
+
+jobs:
+  size-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25.0.5+8.0.LTS
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - run: ./gradlew assembleTomtomRelease assembleMaplibreRelease bundleTomtomRelease bundleMaplibreRelease -PtomtomApiKey=""
+
+      - name: Report APK/AAB sizes
+        run: |
+          shopt -s nullglob
+          files=(
+            app/build/outputs/apk/tomtom/release/*.apk
+            app/build/outputs/apk/maplibre/release/*.apk
+            app/build/outputs/bundle/tomtomRelease/*.aab
+            app/build/outputs/bundle/maplibreRelease/*.aab
+          )
+          if [ "${#files[@]}" -ne 4 ]; then
+            echo "::error::Expected 4 release artifacts, found ${#files[@]}. The assemble/bundle tasks may have changed their output paths."
+            exit 1
+          fi
+          {
+            echo "## APK/AAB size report"
+            echo ""
+            echo "| Artifact | Size |"
+            echo "| --- | --- |"
+            for f in "${files[@]}"; do
+              echo "| \`$f\` | $(du -h "$f" | cut -f1) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-artifacts
+          path: |
+            app/build/outputs/apk/tomtom/release/*.apk
+            app/build/outputs/apk/maplibre/release/*.apk
+            app/build/outputs/bundle/tomtomRelease/*.aab
+            app/build/outputs/bundle/maplibreRelease/*.aab
+          retention-days: 3

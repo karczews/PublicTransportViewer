@@ -57,3 +57,17 @@ refactor(di): migrate from Hilt to Koin
 - Static analysis runs via `./gradlew detekt` (config in `config/detekt/detekt.yml`,
   including Compose rules). Fix findings or suppress with a justifying comment;
   don't weaken the shared config for a single case.
+
+## Dependency and schema checks
+
+CI runs three checks beyond tests/lint/build/quality: an APK/AAB size report, dependency-guard
+(transitive closure baselines in `*/dependencies/`), dependency-analysis (`buildHealth`:
+unused deps and runtimeOnly/compileOnly mis-scoping fail; transitive/api advice is warn-only),
+and a Room schema freshness check folded into the build job (`core/schemas/`).
+
+- Intentional dependency change trips dependency-guard: run
+  `./gradlew dependencyGuardBaseline` and commit the updated baselines.
+- `buildHealth` failures list exact fixes; transitive/api suggestions are warn-only.
+- For changes to a released schema, increment `GtfsDatabase`'s version. Add a
+  migration if data must be preserved; otherwise, destructive fallback deletes it.
+- Regenerate schemas via `./gradlew :core:assembleDebug`; commit them.

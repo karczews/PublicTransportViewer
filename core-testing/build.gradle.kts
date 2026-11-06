@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.spotless)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.dependency.guard)
+    alias(libs.plugins.dependency.analysis)
+}
+
+dependencyGuard {
+    configuration("releaseRuntimeClasspath")
 }
 
 android {
@@ -46,7 +52,8 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.ui)
     // ImageBitmap is part of ScreenshotGolden's public API, so ui-graphics stays visible to consumers.
     api(libs.androidx.compose.ui.graphics)
