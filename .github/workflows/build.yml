@@ -17,3 +17,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - run: ./gradlew assembleDebug -PtomtomApiKey=""
+
+      # Room exports schemas to core/schemas on compile (KSP). Fail if the checked-in
+      # schemas don't match what the entities generate.
+      - name: Check Room schemas are up to date
+        run: ./scripts/check-room-schemas.sh
