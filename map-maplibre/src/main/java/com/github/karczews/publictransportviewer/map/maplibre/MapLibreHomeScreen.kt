@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +83,28 @@ private const val ZOOM_MID = 14
 private const val ZOOM_NEAR = 18
 private val ROUTE_CASING_COLOR = Color(0x64000000)
 
+// Static layer expressions: hoisted so 5s vehicle polls don't rebuild them on the
+// composition thread. None captures per-vehicle or per-route data.
+private val ROUTE_CASING_WIDTH =
+    interpolate(
+        linear(),
+        zoom(),
+        ZOOM_FAR to const(10.dp),
+        ZOOM_MID to const(14.dp),
+        ZOOM_NEAR to const(18.dp),
+    )
+private val ROUTE_LINE_WIDTH =
+    interpolate(
+        linear(),
+        zoom(),
+        ZOOM_FAR to const(6.dp),
+        ZOOM_MID to const(10.dp),
+        ZOOM_NEAR to const(14.dp),
+    )
+private val STOP_TEXT_FIELD = format(span(feature["name"].asString()))
+private val VEHICLE_TEXT_FIELD = format(span(feature["label"].asString()))
+private val LABEL_OFFSET_BELOW = textOffset(0f.em, 0.8f.em)
+
 /**
  * Home tab rendered with maplibre-compose.
  *
@@ -100,6 +123,9 @@ internal fun MapLibreHomeScreen(
     val routeDisplay by viewModel.routeDisplay.collectAsStateWithLifecycle()
     val locationState = rememberLocationState(provider = rememberDefaultLocationProvider())
     val hasLocationPermission = locationState.permission is LocationPermission.Granted
+    // Stable callback identity (one less allocation per poll); the inner
+    // remember(renderKeys) below is what skips work on volatile-only polls.
+    val onSelect = remember(viewModel) { viewModel::onVehicleSelected }
 
     val mapState =
         rememberHomeMapState(
@@ -109,7 +135,7 @@ internal fun MapLibreHomeScreen(
             selectedVehicleId = selectedVehicleId,
             hasLocationPermission = hasLocationPermission,
             locationState = locationState,
-            onSelect = viewModel::onVehicleSelected,
+            onSelect = onSelect,
         )
     val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
@@ -250,53 +276,49 @@ private fun rememberHomeMapState(
 
 @Composable
 private fun RouteLayers(route: RouteDisplayData) {
-    routeLine(route)?.let { line ->
-        val lineSource = rememberGeoJsonSource(GeoJsonData.Features(line))
+    // Route data only changes on selection; memoize so 5s vehicle polls don't rebuild it.
+    // RouteDisplayData holds Lists so it is inferred unstable: without remember this
+    // recomposes on every poll even when the route instance is unchanged.
+    val line = remember(route) { routeLine(route) }
+    line?.let {
+        val lineSource = rememberGeoJsonSource(GeoJsonData.Features(it))
         // Casing = line widths + 2dp each side, like TomTom's outlineWidths = WidthByZoom(2.0).
         LineLayer(
             id = "route-casing",
             source = lineSource,
             color = const(ROUTE_CASING_COLOR),
-            width =
-                interpolate(
-                    linear(),
-                    zoom(),
-                    ZOOM_FAR to const(10.dp),
-                    ZOOM_MID to const(14.dp),
-                    ZOOM_NEAR to const(18.dp),
-                ),
+            width = ROUTE_CASING_WIDTH,
         )
         LineLayer(
             id = "route-line",
             source = lineSource,
             color = const(Color(route.routeColor)),
-            width =
-                interpolate(
-                    linear(),
-                    zoom(),
-                    ZOOM_FAR to const(6.dp),
-                    ZOOM_MID to const(10.dp),
-                    ZOOM_NEAR to const(14.dp),
-                ),
+            width = ROUTE_LINE_WIDTH,
         )
     }
 
-    val stopSource = rememberGeoJsonSource(GeoJsonData.Features(routeStopFeatures(route)))
+    val stopFeatures = remember(route) { routeStopFeatures(route) }
+    val stopPainter = painterResource(CoreR.drawable.ic_stop_dot)
+    // image() is a plain expression builder; painterResource() must stay outside remember
+    // (remember's calculation disallows composable calls). Hoisting avoids rebuilding the
+    // icon expression tree on every recomposition.
+    val stopImage = remember(stopPainter) { image(stopPainter) }
+    val stopSource = rememberGeoJsonSource(GeoJsonData.Features(stopFeatures))
     // Stops must stay visible next to vehicles and each other in dense areas (TomTom shows every
     // stop marker): icons ignore collision, and a colliding label may drop while its dot stays.
     SymbolLayer(
         id = "route-stops",
         source = stopSource,
-        iconImage = image(painterResource(CoreR.drawable.ic_stop_dot)),
+        iconImage = stopImage,
         iconAllowOverlap = const(true),
-        textField = format(span(feature["name"].asString())),
+        textField = STOP_TEXT_FIELD,
         textFont = LABEL_FONT,
         textColor = const(Color.DarkGray),
         textHaloColor = const(Color.White),
         textHaloWidth = const(1.dp),
         textSize = const(10.sp),
         textAnchor = const(SymbolAnchor.Top),
-        textOffset = textOffset(0f.em, 0.8f.em),
+        textOffset = LABEL_OFFSET_BELOW,
         textOptional = const(true),
         // A stop tap keeps the selection (TomTom's stop click is a no-op too).
         onClick = { ClickResult.Consume },
@@ -305,31 +327,47 @@ private fun RouteLayers(route: RouteDisplayData) {
 
 @Composable
 // onVehicleSelected matches the AdapterView onItemSelected naming convention.
-@Suppress("ParameterNaming")
+@Suppress("ParameterNaming", "RememberContentMissing")
 private fun VehicleLayer(
     vehicles: List<VehiclePosition>,
     onVehicleSelected: (VehiclePosition) -> Unit,
 ) {
-    val vehicleSource = rememberGeoJsonSource(GeoJsonData.Features(vehicleFeatures(vehicles)))
+    // Cheap projection of only the rendered fields (id/position/label/type) in feed order.
+    // Feed-volatile fields (timestamp/bearing/speed/...) change every 5s poll even when nothing
+    // visible moved; keying on them would rebuild every poll.
+    // RememberContentMissing: `vehicles` is intentionally captured but excluded from the key —
+    // the key is its rendered projection above, guarded by MapLibreFeaturesTest contract tests.
+    val renderKeys = vehicleRenderKeys(vehicles)
+    val features = remember(renderKeys) { vehicleFeatures(vehicles) }
+    val vehicleSource = rememberGeoJsonSource(GeoJsonData.Features(features))
+    // Hoisted like the stop icon above: rebuilding these expression trees every poll wastes
+    // composition-thread CPU even though equal trees hit the layer-property cache.
+    val tramPainter = painterResource(CoreR.drawable.ic_tram)
+    val busPainter = painterResource(CoreR.drawable.ic_bus)
+    val tramImage = remember(tramPainter) { image(tramPainter) }
+    val busImage = remember(busPainter) { image(busPainter) }
     SymbolLayer(
         id = "vehicles",
         source = vehicleSource,
         iconImage =
             switch(
                 feature["type"].asString(),
-                case("TRAM", image(painterResource(CoreR.drawable.ic_tram))),
-                fallback = image(painterResource(CoreR.drawable.ic_bus)),
+                case("TRAM", tramImage),
+                fallback = busImage,
             ),
         iconAllowOverlap = const(true),
-        textField = format(span(feature["label"].asString())),
+        textField = VEHICLE_TEXT_FIELD,
         textFont = LABEL_FONT,
         textColor = const(Color.White),
         textHaloColor = const(Color.Black),
         textHaloWidth = const(2.dp),
         textSize = const(12.sp),
         textAnchor = const(SymbolAnchor.Top),
-        textOffset = textOffset(0f.em, 0.8f.em),
-        textAllowOverlap = const(true),
+        textOffset = LABEL_OFFSET_BELOW,
+        // Icons stay visible in dense areas; colliding labels cull instead of overdrawing
+        // all 200 labels (same pattern as the route-stops layer above).
+        textAllowOverlap = const(false),
+        textOptional = const(true),
         onClick = { features ->
             features
                 .firstOrNull()

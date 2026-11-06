@@ -33,6 +33,32 @@ internal fun vehicleFeatures(
         },
     )
 
+/**
+ * Only the vehicle fields that reach the map. Keep in sync with [vehicleFeatures]: any new rendered property there MUST
+ * be added here, or the memoized FeatureCollection goes stale. Feed-volatile fields (timestamp, bearing, speed, status,
+ * stopId, tripId, raw label, routeColor, tripHeadsign, and routeId while routeShortName is set) are deliberately
+ * excluded so stationary polls reuse the previous collection. Note routeId IS rendered via the vehicleLabel fallback
+ * when routeShortName is null/blank.
+ */
+internal data class VehicleRenderKey(
+    val vehicleId: String,
+    val longitude: Double,
+    val latitude: Double,
+    val label: String,
+    val vehicleTypeName: String,
+)
+
+/** Render keys for [vehicles] in feed order, so the memoized collection matches [vehicleFeatures] exactly. */
+internal fun vehicleRenderKeys(vehicles: List<VehiclePosition>): List<VehicleRenderKey> = vehicles.map { vehicle ->
+    VehicleRenderKey(
+        vehicleId = vehicle.vehicleId,
+        longitude = vehicle.longitude,
+        latitude = vehicle.latitude,
+        label = vehicleLabel(vehicle),
+        vehicleTypeName = vehicle.vehicleType.name,
+    )
+}
+
 /** The route shape, or null when it has fewer than 2 points (a LineString needs at least 2). */
 internal fun routeLine(route: RouteDisplayData): FeatureCollection<LineString, JsonObject>? {
     if (route.polylinePoints.size < 2) return null
