@@ -68,4 +68,6 @@ and a Room schema freshness check folded into the build job (`core/schemas/`).
 - Intentional dependency change trips dependency-guard: run
   `./gradlew dependencyGuardBaseline` and commit the updated baselines.
 - `buildHealth` failures list exact fixes; transitive/api suggestions are warn-only.
-- Entity changes regenerate schemas via `./gradlew :core:assembleDebug`; commit them.
+- For changes to a released schema, increment `GtfsDatabase`'s version. Add a
+  migration if data must be preserved; otherwise, destructive fallback deletes it.
+- Regenerate schemas via `./gradlew :core:assembleDebug`; commit them.
