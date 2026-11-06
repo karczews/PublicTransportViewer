@@ -76,8 +76,8 @@ private fun contentValues(name: String) =
         put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/screenshots")
     }
 
-/** VM-fatal errors must never be swallowed by diagnostic storage handling. */
-private fun rethrowFatal(t: Throwable) {
+/** VM-fatal errors must never be swallowed by diagnostic capture or storage handling. */
+internal fun rethrowFatal(t: Throwable) {
     if (t is Error) throw t
 }
 

@@ -119,11 +119,11 @@ private fun freshCapture(capture: () -> ImageBitmap): Bitmap =
 
 /**
  * Captures once, returning null when the capture itself transiently fails. Any failure is retried by the caller's poll
- * loop, so the broad catches are intentional: a single bad frame must not fail the whole test. Besides ordinary
- * exceptions, this covers `ComposeTimeoutException`, which `captureToImage` throws as an `AssertionError` (not an
- * `Exception`) when its `forceRedraw` times out on a busy map surface. Anything else fatal (e.g. OOM, an `Error` that
- * is not an `AssertionError`) still propagates. The last failure is reported through [onError] so a permanently broken
- * capture still surfaces its cause.
+ * loop, so the broad catch is intentional: a single bad frame must not fail the whole test. Note `captureToImage`
+ * signals infrastructure timeouts (e.g. its `forceRedraw` timing out on a busy map surface) via
+ * `ComposeTimeoutException`, which extends `Throwable` directly — neither `Exception` nor `AssertionError` catches see
+ * it. Fatal VM errors still propagate via [rethrowFatal]. The last failure is reported through [onError] so a
+ * permanently broken capture still surfaces its cause.
  */
 @Suppress("TooGenericExceptionCaught")
 private fun tryCapture(
@@ -132,13 +132,10 @@ private fun tryCapture(
 ): Bitmap? =
     try {
         freshCapture(capture)
-    } catch (e: Exception) {
-        Log.w(TAG, "Screenshot capture failed; retrying.", e)
-        onError(e)
-        null
-    } catch (e: AssertionError) {
-        Log.w(TAG, "Screenshot capture failed; retrying.", e)
-        onError(e)
+    } catch (t: Throwable) {
+        rethrowFatal(t)
+        Log.w(TAG, "Screenshot capture failed; retrying.", t)
+        onError(t)
         null
     }
 
