@@ -22,3 +22,10 @@ jobs:
       # schemas don't match what the entities generate.
       - name: Check Room schemas are up to date
         run: ./scripts/check-room-schemas.sh
+
+      - uses: actions/upload-artifact@v7
+        if: github.ref == 'refs/heads/main'
+        with:
+          name: apks-debug
+          path: app/build/outputs/apk/*/debug/*.apk
+          retention-days: 30
