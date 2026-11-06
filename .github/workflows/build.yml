@@ -24,8 +24,15 @@ jobs:
         run: ./scripts/check-room-schemas.sh
 
       - uses: actions/upload-artifact@v7
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           name: apks-debug
           path: app/build/outputs/apk/*/debug/*.apk
           retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+        with:
+          name: apks-debug
+          path: app/build/outputs/apk/*/debug/*.apk
+          retention-days: 3
