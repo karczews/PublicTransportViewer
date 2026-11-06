@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DefaultStopRepositoryTest {
@@ -232,6 +233,37 @@ class DefaultStopRepositoryTest {
         assertEquals("CE1124", departures[0].routeColor)
     }
 
+    @Test
+    fun `builds departures with one batch query per DAO`() = runTest {
+        val trip2 = TripEntity("T2", "R2", "WD", "Retkinia", 0, null)
+        val route2 = RouteEntity("R2", null, "50", "Route Fifty", 3, null, null)
+        val routeDao = FakeRouteDao(mapOf("R1" to route, "R2" to route2))
+        val tripDao = FakeTripDao(mapOf("T1" to trip, "T2" to trip2))
+        val repo =
+            DefaultStopRepository(
+                stopDao = FakeStopDao(emptyList()),
+                stopTimeDao =
+                    FakeStopTimeDao(
+                        listOf(
+                            stopTime(departure = "12:30:00"),
+                            stopTime(tripId = "T2", departure = "12:35:00", seq = 2),
+                        ),
+                    ),
+                tripDao = tripDao,
+                routeDao = routeDao,
+                tripUpdateDataSource = FakeTripUpdateDataSource(emptyList()),
+                clock = clockAt(12, 0),
+            )
+
+        val departures = repo.observeDeparturesForStop("S1").first()
+
+        assertEquals(2, departures.size)
+        assertEquals(listOf(setOf("T1", "T2")), tripDao.batchCalls.map { it.toSet() })
+        assertEquals(listOf(setOf("R1", "R2")), routeDao.batchCalls.map { it.toSet() })
+        assertTrue(tripDao.singleCalls.isEmpty())
+        assertTrue(routeDao.singleCalls.isEmpty())
+    }
+
     private fun buildRepo(
         stops: List<StopEntity> = emptyList(),
         stopTimes: List<StopTimeEntity> = emptyList(),
@@ -275,9 +307,18 @@ private class FakeStopTimeDao(private val stopTimes: List<StopTimeEntity>) : Sto
 }
 
 private class FakeRouteDao(private val routes: Map<String, RouteEntity>) : RouteDao {
-    override suspend fun getRouteById(routeId: String) = routes[routeId]
+    val singleCalls = mutableListOf<String>()
+    val batchCalls = mutableListOf<List<String>>()
 
-    override suspend fun getRoutesByIds(routeIds: List<String>) = routeIds.mapNotNull { routes[it] }
+    override suspend fun getRouteById(routeId: String): RouteEntity? {
+        singleCalls += routeId
+        return routes[routeId]
+    }
+
+    override suspend fun getRoutesByIds(routeIds: List<String>): List<RouteEntity> {
+        batchCalls += routeIds
+        return routeIds.mapNotNull { routes[it] }
+    }
 
     override suspend fun getAllRoutes() = routes.values.toList()
 
@@ -287,9 +328,18 @@ private class FakeRouteDao(private val routes: Map<String, RouteEntity>) : Route
 }
 
 private class FakeTripDao(private val trips: Map<String, TripEntity>) : TripDao {
-    override suspend fun getTripById(tripId: String) = trips[tripId]
+    val singleCalls = mutableListOf<String>()
+    val batchCalls = mutableListOf<List<String>>()
 
-    override suspend fun getTripsByIds(tripIds: List<String>) = tripIds.mapNotNull { trips[it] }
+    override suspend fun getTripById(tripId: String): TripEntity? {
+        singleCalls += tripId
+        return trips[tripId]
+    }
+
+    override suspend fun getTripsByIds(tripIds: List<String>): List<TripEntity> {
+        batchCalls += tripIds
+        return tripIds.mapNotNull { trips[it] }
+    }
 
     override suspend fun getTripsByRouteId(routeId: String) = trips.values.filter { it.routeId == routeId }
 
