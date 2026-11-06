@@ -53,8 +53,9 @@ native Surface/GL views that Robolectric/Layoutlib leave blank.
    (`am instrument` leaves the APKs installed so the pull works; `connectedDebugAndroidTest`
    uninstalls them afterwards, which is why failure artifacts are also mirrored to shared
    storage — see above.)
-4. Inspect the PNGs, copy them to `src/androidTest/assets/screenshots/`, and re-run in verify
-   mode (plain `connectedDebugAndroidTest`).
+4. Inspect the PNGs, then copy them to `src/androidTest/assets/screenshots/`, removing
+   `_recorded` from each filename (for example, `maplibre_home_default_recorded.png` becomes
+   `maplibre_home_default.png`). Re-run in verify mode (plain `connectedDebugAndroidTest`).
 
 ## TomTom API key
 
