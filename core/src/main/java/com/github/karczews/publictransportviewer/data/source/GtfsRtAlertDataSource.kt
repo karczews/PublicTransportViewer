@@ -18,6 +18,9 @@ class GtfsRtAlertDataSource(private val api: GtfsRtApi) : AlertDataSource {
         return feedMessage.entityList.filter { it.hasAlert() }.map { entity -> mapAlert(entity.id, entity.alert) }
     }
 
+    // active_period is deprecated in the GTFS-RT proto itself ("for backwards-compatibility only"),
+    // but it remains the only field carrying active-period data and producers still populate it.
+    @Suppress("DEPRECATION")
     private fun mapAlert(entityId: String, alert: GtfsRealtime.Alert): ServiceAlert {
         val activePeriods =
             alert.activePeriodList.map {

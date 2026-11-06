@@ -30,7 +30,7 @@ class GtfsRtApiImpl(private val client: OkHttpClient) : GtfsRtApi {
                 if (!response.isSuccessful) {
                     error("HTTP ${response.code}: ${response.message}")
                 }
-                val bytes = response.body!!.bytes()
+                val bytes = response.body.bytes()
                 FeedMessage.parseFrom(bytes)
             }
         }

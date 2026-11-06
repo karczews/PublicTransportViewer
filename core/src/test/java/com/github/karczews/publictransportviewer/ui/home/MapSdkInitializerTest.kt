@@ -129,8 +129,9 @@ class MapSdkInitializerTest {
         initializer.ensureInitialized(sdk).await()
 
         assertNotNull(reported)
-        assertSame(sdk, reported!!.first)
-        assertSame(failure, reported!!.second)
+        val (failedSdk, error) = requireNotNull(reported)
+        assertSame(sdk, failedSdk)
+        assertSame(failure, error)
     }
 
     @Test
