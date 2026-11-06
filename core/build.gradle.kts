@@ -69,6 +69,10 @@ koinCompiler {
     // Kotlin's incremental compilation cache (DSL/module lambda changes don't invalidate it
     // otherwise).
     strictSafety = true
+    // :core has no Koin entry point (it lives in :app, where the full graph is validated), so the
+    // plugin's "validation skipped" notice is expected here. Demote informational output to info;
+    // real diagnostics keep their own severity.
+    logSeverity = "info"
 }
 
 dependencies {

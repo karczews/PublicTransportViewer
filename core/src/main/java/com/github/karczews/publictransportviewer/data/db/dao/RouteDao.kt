@@ -12,6 +12,9 @@ interface RouteDao {
     @Query("SELECT * FROM gtfs_routes WHERE route_id = :routeId")
     suspend fun getRouteById(routeId: String): RouteEntity?
 
+    @Query("SELECT * FROM gtfs_routes WHERE route_id IN (:routeIds)")
+    suspend fun getRoutesByIds(routeIds: List<String>): List<RouteEntity>
+
     @Query("SELECT * FROM gtfs_routes") suspend fun getAllRoutes(): List<RouteEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAll(routes: List<RouteEntity>)

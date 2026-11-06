@@ -30,7 +30,7 @@ class GtfsStaticDataSource(
                     error("HTTP ${response.code}: ${response.message}")
                 }
 
-                response.body!!.use { body ->
+                response.body.use { body ->
                     val zipStream = ZipInputStream(body.byteStream())
                     importZip(zipStream)
                     zipStream.close()
