@@ -52,7 +52,7 @@ object ScreenshotGolden {
         var attempts = 0
         var lastMismatch = FULL_MISMATCH
         var lastActual: Bitmap? = null
-        var lastCaptureError: Exception? = null
+        var lastCaptureError: Throwable? = null
         var capturesFailed = 0
         while (SystemClock.uptimeMillis() < deadline) {
             val actual = tryCapture(capture) { lastCaptureError = it }
@@ -118,19 +118,25 @@ private fun freshCapture(capture: () -> ImageBitmap): Bitmap =
     capture().asAndroidBitmap().copy(Bitmap.Config.ARGB_8888, false)
 
 /**
- * Captures once, returning null when the capture itself transiently fails (e.g. a forceRedraw timeout while the map
- * surface is busy). Any failure is retried by the caller's poll loop, so the broad catch is intentional: a single bad
- * frame must not fail the whole test. The last failure is reported through [onError] so a permanently broken capture
- * still surfaces its cause.
+ * Captures once, returning null when the capture itself transiently fails. Any failure is retried by the caller's poll
+ * loop, so the broad catches are intentional: a single bad frame must not fail the whole test. Besides ordinary
+ * exceptions, this covers `ComposeTimeoutException`, which `captureToImage` throws as an `AssertionError` (not an
+ * `Exception`) when its `forceRedraw` times out on a busy map surface. Anything else fatal (e.g. OOM, an `Error` that
+ * is not an `AssertionError`) still propagates. The last failure is reported through [onError] so a permanently broken
+ * capture still surfaces its cause.
  */
 @Suppress("TooGenericExceptionCaught")
 private fun tryCapture(
     capture: () -> ImageBitmap,
-    onError: (Exception) -> Unit = {},
+    onError: (Throwable) -> Unit = {},
 ): Bitmap? =
     try {
         freshCapture(capture)
     } catch (e: Exception) {
+        Log.w(TAG, "Screenshot capture failed; retrying.", e)
+        onError(e)
+        null
+    } catch (e: AssertionError) {
         Log.w(TAG, "Screenshot capture failed; retrying.", e)
         onError(e)
         null
