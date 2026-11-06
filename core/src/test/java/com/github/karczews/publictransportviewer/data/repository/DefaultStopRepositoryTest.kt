@@ -253,6 +253,8 @@ class DefaultStopRepositoryTest {
 private class FakeStopDao(private val stops: List<StopEntity>) : StopDao {
     override suspend fun getStopById(stopId: String) = stops.find { it.stopId == stopId }
 
+    override suspend fun getStopsByIds(stopIds: List<String>) = stops.filter { it.stopId in stopIds }
+
     override suspend fun searchStopsByName(query: String) = stops.filter { query in it.stopName }
 
     override suspend fun insertAll(stops: List<StopEntity>) {}
@@ -275,6 +277,8 @@ private class FakeStopTimeDao(private val stopTimes: List<StopTimeEntity>) : Sto
 private class FakeRouteDao(private val routes: Map<String, RouteEntity>) : RouteDao {
     override suspend fun getRouteById(routeId: String) = routes[routeId]
 
+    override suspend fun getRoutesByIds(routeIds: List<String>) = routeIds.mapNotNull { routes[it] }
+
     override suspend fun getAllRoutes() = routes.values.toList()
 
     override suspend fun insertAll(routes: List<RouteEntity>) {}
@@ -284,6 +288,8 @@ private class FakeRouteDao(private val routes: Map<String, RouteEntity>) : Route
 
 private class FakeTripDao(private val trips: Map<String, TripEntity>) : TripDao {
     override suspend fun getTripById(tripId: String) = trips[tripId]
+
+    override suspend fun getTripsByIds(tripIds: List<String>) = tripIds.mapNotNull { trips[it] }
 
     override suspend fun getTripsByRouteId(routeId: String) = trips.values.filter { it.routeId == routeId }
 

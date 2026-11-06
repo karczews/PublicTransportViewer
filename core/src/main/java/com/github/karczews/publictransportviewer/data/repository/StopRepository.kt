@@ -10,9 +10,12 @@ import com.github.karczews.publictransportviewer.data.model.TripUpdate
 import com.github.karczews.publictransportviewer.data.model.VehicleType
 import com.github.karczews.publictransportviewer.data.source.TripUpdateDataSource
 import java.util.Calendar
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 
 interface StopRepository {
     suspend fun searchStops(query: String): List<StopEntity>
@@ -44,6 +47,8 @@ class DefaultStopRepository(
             delay(POLL_INTERVAL_MS)
         }
     }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
 
     private suspend fun fetchTripUpdatesOrCached(): List<TripUpdate> =
         try {
@@ -69,9 +74,10 @@ class DefaultStopRepository(
         if (candidates.isEmpty()) return emptyList()
 
         val tripIds = candidates.map { it.first.tripId }.distinct()
-        val trips = tripIds.mapNotNull { id -> tripDao.getTripById(id)?.let { id to it } }.toMap()
+        val trips = if (tripIds.isEmpty()) emptyMap() else tripDao.getTripsByIds(tripIds).associateBy { it.tripId }
         val routeIds = trips.values.map { it.routeId }.distinct()
-        val routes = routeIds.mapNotNull { id -> routeDao.getRouteById(id)?.let { id to it } }.toMap()
+        val routes =
+            if (routeIds.isEmpty()) emptyMap() else routeDao.getRoutesByIds(routeIds).associateBy { it.routeId }
 
         val delayByTripId = tripUpdates.associate { update ->
             val delay =

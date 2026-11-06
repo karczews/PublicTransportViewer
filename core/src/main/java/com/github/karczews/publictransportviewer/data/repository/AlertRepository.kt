@@ -3,9 +3,12 @@ package com.github.karczews.publictransportviewer.data.repository
 import com.github.karczews.publictransportviewer.data.db.dao.RouteDao
 import com.github.karczews.publictransportviewer.data.model.ServiceAlert
 import com.github.karczews.publictransportviewer.data.source.AlertDataSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 
 interface AlertRepository {
     fun observeAlerts(): Flow<List<ServiceAlert>>
@@ -31,15 +34,13 @@ class DefaultAlertRepository(
             delay(POLL_INTERVAL_MS)
         }
     }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
 
     private suspend fun enrichAlerts(alerts: List<ServiceAlert>): List<ServiceAlert> {
         val allRouteIds = alerts.flatMap { it.affectedRouteIds }.distinct()
-        val routeNames =
-            allRouteIds
-                .mapNotNull { id ->
-                    routeDao.getRouteById(id)?.let { id to it.routeShortName }
-                }
-                .toMap()
+        if (allRouteIds.isEmpty()) return alerts
+        val routeNames = routeDao.getRoutesByIds(allRouteIds).associate { it.routeId to it.routeShortName }
 
         return alerts.map { alert ->
             alert.copy(

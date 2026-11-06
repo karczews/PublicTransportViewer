@@ -150,6 +150,8 @@ private class FakeVehicleDataSource(
 private class VehicleTestRouteDao(private val routes: Map<String, RouteEntity>) : RouteDao {
     override suspend fun getRouteById(routeId: String): RouteEntity? = routes[routeId]
 
+    override suspend fun getRoutesByIds(routeIds: List<String>): List<RouteEntity> = routeIds.mapNotNull { routes[it] }
+
     override suspend fun getAllRoutes(): List<RouteEntity> = routes.values.toList()
 
     override suspend fun insertAll(routes: List<RouteEntity>) {}
@@ -159,6 +161,8 @@ private class VehicleTestRouteDao(private val routes: Map<String, RouteEntity>) 
 
 private class VehicleTestTripDao(private val trips: Map<String, TripEntity>) : TripDao {
     override suspend fun getTripById(tripId: String): TripEntity? = trips[tripId]
+
+    override suspend fun getTripsByIds(tripIds: List<String>): List<TripEntity> = tripIds.mapNotNull { trips[it] }
 
     override suspend fun getTripsByRouteId(routeId: String): List<TripEntity> =
         trips.values.filter { it.routeId == routeId }

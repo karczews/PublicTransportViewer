@@ -44,7 +44,6 @@ class HomeViewModel(
                     _error.value = e.message
                 }
                 .collect { positions ->
-                    Log.d("HomeViewModel", "Received ${positions.size} vehicles")
                     _vehiclePositions.value = positions
                     if (positions.isNotEmpty()) _error.value = null
                 }
