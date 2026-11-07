@@ -70,4 +70,7 @@ status-bar demo mode on API 34 — only the app window is captured).
 
 `screenshot-tests.yml` (wired into `ci.yml`'s gate) boots a Pixel 6 API 34 emulator, fixes the
 status bar as above, runs both map modules' `connectedDebugAndroidTest`, and uploads the device
-screenshot outputs on every run plus the test reports on failure.
+screenshot outputs on every run plus the test reports on failure. The test command runs at most
+twice: a single retry on the warm emulator absorbs transient runner wedges (a stuck system ANR
+dialog, throttled tile loads, Maven rate limits). A genuine UI regression fails deterministically
+on both attempts, so the retry cannot mask real regressions.

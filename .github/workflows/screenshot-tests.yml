@@ -52,8 +52,10 @@ jobs:
             # android-emulator-runner executes each script line in its own shell, so the Gradle
             # status capture, artifact pulls, and final exit must share a single line. Failure
             # PNGs are pulled from shared storage: connectedDebugAndroidTest uninstalls the APKs
-            # afterwards, which wipes the app-private external files dir.
-            ./gradlew :map-maplibre:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}"; gradle_status=$?; adb pull /sdcard/Pictures/screenshots screenshots-device || true; exit "$gradle_status"
+            # afterwards, which wipes the app-private external files dir. A single retry covers
+            # transient runner wedges (e.g. a stuck system ANR dialog or throttled tile loads);
+            # a genuine UI regression fails deterministically on both attempts.
+            ./gradlew :map-maplibre:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}"; gradle_status=$?; if [ "$gradle_status" -ne 0 ]; then echo "First attempt failed; dismissing system dialogs and retrying once on the warm emulator..."; adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS; ./gradlew :map-maplibre:connectedDebugAndroidTest :map-tomtom:connectedDebugAndroidTest -PtomtomApiKey="${{ secrets.TOMTOM_API_KEY }}"; gradle_status=$?; fi; adb pull /sdcard/Pictures/screenshots screenshots-device || true; exit "$gradle_status"
 
       - uses: actions/upload-artifact@v7
         if: always()
