@@ -58,14 +58,15 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: screenshot-device-outputs
+          # Unique per attempt so reruns never overwrite (or hide) earlier diagnostics.
+          name: screenshot-device-outputs-attempt-${{ github.run_attempt }}
           path: screenshots-device/
           retention-days: 7
 
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: screenshot-test-results
+          name: screenshot-test-results-attempt-${{ github.run_attempt }}
           path: |
             */build/outputs/androidTest-results/
             */build/reports/androidTests/
