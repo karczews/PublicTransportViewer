@@ -8,6 +8,7 @@ import com.github.karczews.publictransportviewer.data.model.VehicleStatus
 import com.github.karczews.publictransportviewer.data.model.VehicleType
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -126,5 +127,94 @@ class MapLibreFeaturesTest {
     @Test
     fun clickedVehicleId_readsIdProperty() {
         assertEquals("tram-v1", clickedVehicleId(vehicleFeatures(listOf(tram10)).features.first()))
+    }
+
+    @Test
+    fun renderKeys_ignoreVolatileOnlyChanges() {
+        val variants =
+            listOf(
+                tram10.copy(timestamp = 1700000001L),
+                tram10.copy(bearing = 180f),
+                tram10.copy(speed = 5f),
+                tram10.copy(currentStatus = VehicleStatus.STOPPED_AT),
+                tram10.copy(stopId = "stop-1"),
+                tram10.copy(tripId = "trip-10-2"),
+                // Raw label never reaches the map: vehicleLabel() uses routeShortName ?: routeId.
+                tram10.copy(label = "999"),
+                // routeId feeds vehicleLabel only as a fallback; routeShortName is set here.
+                tram10.copy(routeId = "10X"),
+                tram10.copy(routeColor = "FFFFFF"),
+                tram10.copy(tripHeadsign = "Other Headsign"),
+            )
+
+        variants.forEach { variant ->
+            assertEquals(
+                vehicleRenderKeys(listOf(tram10)),
+                vehicleRenderKeys(listOf(variant)),
+            )
+            // Structural equality is why memoizing on the keys is safe.
+            assertEquals(vehicleFeatures(listOf(tram10)), vehicleFeatures(listOf(variant)))
+        }
+    }
+
+    @Test
+    fun renderKeys_detectRenderedChanges() {
+        assertNotEquals(
+            vehicleRenderKeys(listOf(tram10)),
+            vehicleRenderKeys(listOf(tram10.copy(latitude = 51.7700))),
+        )
+        assertNotEquals(
+            vehicleRenderKeys(listOf(tram10)),
+            vehicleRenderKeys(listOf(tram10.copy(longitude = 19.4700))),
+        )
+        assertNotEquals(
+            vehicleRenderKeys(listOf(tram10)),
+            vehicleRenderKeys(listOf(tram10.copy(vehicleId = "tram-v9"))),
+        )
+        assertNotEquals(
+            vehicleRenderKeys(listOf(tram10)),
+            vehicleRenderKeys(listOf(tram10.copy(vehicleType = VehicleType.BUS))),
+        )
+        // Label change via routeShortName.
+        assertNotEquals(
+            vehicleRenderKeys(listOf(tram10)),
+            vehicleRenderKeys(listOf(tram10.copy(routeShortName = "10A"))),
+        )
+    }
+
+    @Test
+    fun renderKeys_followLabelFallback() {
+        val withoutShortName = tram10.copy(routeShortName = null)
+        // routeId change flips the fallback label.
+        assertNotEquals(
+            vehicleRenderKeys(listOf(withoutShortName)),
+            vehicleRenderKeys(listOf(withoutShortName.copy(routeId = "99"))),
+        )
+        // Blank short name falls back to routeId exactly like null does.
+        val blankShortName = tram10.copy(routeShortName = "  ")
+        assertEquals(
+            vehicleRenderKeys(listOf(withoutShortName)),
+            vehicleRenderKeys(listOf(blankShortName)),
+        )
+        assertNotEquals(
+            vehicleRenderKeys(listOf(blankShortName)),
+            vehicleRenderKeys(listOf(blankShortName.copy(routeId = "99"))),
+        )
+    }
+
+    @Test
+    fun featureCollection_buildsExclusivelyFromKeys() {
+        val vehicles = listOf(tram10, bus50)
+        assertEquals(vehicleFeatures(vehicles), vehicleFeatureCollection(vehicleRenderKeys(vehicles)))
+    }
+
+    @Test
+    fun renderKeys_followFeedOrder() {
+        // Keys track feed order like vehicleFeatures does: a reorder-only poll rebuilds once
+        // rather than risk reusing a stale-order collection.
+        assertNotEquals(
+            vehicleRenderKeys(listOf(tram10, bus50)),
+            vehicleRenderKeys(listOf(bus50, tram10)),
+        )
     }
 }
