@@ -220,8 +220,8 @@ private fun VehicleMarkers(
                 Unit
             }
         }
-    // Keys are computed once per poll here (cheap projection); each keyed child skips unless
-    // its rendered fields changed, so volatile-only polls do no per-marker work at all.
+    // Keys are computed once per poll (a cheap projection); each keyed child then skips
+    // unless its rendered fields changed, so unchanged markers avoid native updates.
     vehicleMarkerKeys(vehicles).forEach { markerKey ->
         key(markerKey.vehicleId) {
             VehicleMarker(
