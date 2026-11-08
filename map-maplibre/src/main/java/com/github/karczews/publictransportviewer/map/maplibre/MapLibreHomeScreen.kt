@@ -276,9 +276,9 @@ private fun rememberHomeMapState(
 
 @Composable
 private fun RouteLayers(route: RouteDisplayData) {
-    // Route data only changes on selection; memoize so 5s vehicle polls don't rebuild it.
-    // RouteDisplayData holds Lists so it is inferred unstable: without remember this
-    // recomposes on every poll even when the route instance is unchanged.
+    // Route data only changes on selection. Strong skipping (default in the Kotlin 2.x compose
+    // plugin) skips this on an unchanged route instance; the remembers below additionally pin the
+    // sources if a recomposition does run with an equal route.
     val line = remember(route) { routeLine(route) }
     line?.let {
         val lineSource = rememberGeoJsonSource(GeoJsonData.Features(it))
@@ -327,34 +327,36 @@ private fun RouteLayers(route: RouteDisplayData) {
 
 @Composable
 // onVehicleSelected matches the AdapterView onItemSelected naming convention.
-@Suppress("ParameterNaming", "RememberContentMissing")
+@Suppress("ParameterNaming")
 private fun VehicleLayer(
     vehicles: List<VehiclePosition>,
     onVehicleSelected: (VehiclePosition) -> Unit,
 ) {
     // Cheap projection of only the rendered fields (id/position/label/type) in feed order.
     // Feed-volatile fields (timestamp/bearing/speed/...) change every 5s poll even when nothing
-    // visible moved; keying on them would rebuild every poll.
-    // RememberContentMissing: `vehicles` is intentionally captured but excluded from the key —
-    // the key is its rendered projection above, guarded by MapLibreFeaturesTest contract tests.
+    // visible moved; the collection below rebuilds only when the projection changes because the
+    // builder reads nothing but the keys.
     val renderKeys = vehicleRenderKeys(vehicles)
-    val features = remember(renderKeys) { vehicleFeatures(vehicles) }
-    val vehicleSource = rememberGeoJsonSource(GeoJsonData.Features(features))
+    val vehicleCollection = remember(renderKeys) { vehicleFeatureCollection(renderKeys) }
+    val vehicleSource = rememberGeoJsonSource(GeoJsonData.Features(vehicleCollection))
     // Hoisted like the stop icon above: rebuilding these expression trees every poll wastes
     // composition-thread CPU even though equal trees hit the layer-property cache.
     val tramPainter = painterResource(CoreR.drawable.ic_tram)
     val busPainter = painterResource(CoreR.drawable.ic_bus)
     val tramImage = remember(tramPainter) { image(tramPainter) }
     val busImage = remember(busPainter) { image(busPainter) }
-    SymbolLayer(
-        id = "vehicles",
-        source = vehicleSource,
-        iconImage =
+    val vehicleIcon =
+        remember(tramImage, busImage) {
             switch(
                 feature["type"].asString(),
                 case("TRAM", tramImage),
                 fallback = busImage,
-            ),
+            )
+        }
+    SymbolLayer(
+        id = "vehicles",
+        source = vehicleSource,
+        iconImage = vehicleIcon,
         iconAllowOverlap = const(true),
         textField = VEHICLE_TEXT_FIELD,
         textFont = LABEL_FONT,

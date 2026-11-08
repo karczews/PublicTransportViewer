@@ -190,12 +190,22 @@ class MapLibreFeaturesTest {
             vehicleRenderKeys(listOf(withoutShortName)),
             vehicleRenderKeys(listOf(withoutShortName.copy(routeId = "99"))),
         )
-        // Blank short name also falls back to routeId.
+        // Blank short name falls back to routeId exactly like null does.
         val blankShortName = tram10.copy(routeShortName = "  ")
-        assertNotEquals(
+        assertEquals(
             vehicleRenderKeys(listOf(withoutShortName)),
+            vehicleRenderKeys(listOf(blankShortName)),
+        )
+        assertNotEquals(
+            vehicleRenderKeys(listOf(blankShortName)),
             vehicleRenderKeys(listOf(blankShortName.copy(routeId = "99"))),
         )
+    }
+
+    @Test
+    fun featureCollection_buildsExclusivelyFromKeys() {
+        val vehicles = listOf(tram10, bus50)
+        assertEquals(vehicleFeatures(vehicles), vehicleFeatureCollection(vehicleRenderKeys(vehicles)))
     }
 
     @Test
