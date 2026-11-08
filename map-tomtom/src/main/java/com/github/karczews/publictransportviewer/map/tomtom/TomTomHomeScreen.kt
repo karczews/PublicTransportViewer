@@ -20,6 +20,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,11 +34,10 @@ import com.github.karczews.publictransportviewer.core.R as CoreR
 import com.github.karczews.publictransportviewer.data.model.RouteDisplayData
 import com.github.karczews.publictransportviewer.data.model.RouteStop
 import com.github.karczews.publictransportviewer.data.model.VehiclePosition
+import com.github.karczews.publictransportviewer.data.model.VehicleType
 import com.github.karczews.publictransportviewer.ui.home.HomeMapDefaults
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import com.github.karczews.publictransportviewer.ui.home.vehicleIconRes
-import com.github.karczews.publictransportviewer.ui.home.vehicleLabel
-import com.github.karczews.publictransportviewer.ui.home.vehicleTitle
 import com.github.karczews.publictransportviewer.ui.home.visibleRouteDisplay
 import com.tomtom.sdk.init.TomTomSdk
 import com.tomtom.sdk.location.GeoPoint
@@ -59,6 +59,7 @@ import com.tomtom.sdk.map.display.compose.state.rememberCurrentLocationMarkerSta
 import com.tomtom.sdk.map.display.compose.state.rememberMapViewState
 import com.tomtom.sdk.map.display.compose.state.rememberMarkerState
 import com.tomtom.sdk.map.display.compose.state.rememberPolylineState
+import com.tomtom.sdk.map.display.image.Image
 import com.tomtom.sdk.map.display.image.ImageFactory
 import com.tomtom.sdk.map.display.marker.Label
 import kotlinx.coroutines.launch
@@ -93,6 +94,9 @@ fun TomTomHomeScreen(
     val coroutineScope = rememberCoroutineScope()
     val locationProvider = remember { TomTomSdk.locationProvider }
     val (hasLocationPermission, requestPermission) = rememberLocationPermission()
+    // Stable across recompositions so marker subtrees can skip when their inputs are unchanged
+    // (a fresh `viewModel::onVehicleSelected` reference each composition would defeat skipping).
+    val onSelect = remember(viewModel) { viewModel::onVehicleSelected }
 
     Box(modifier = modifier.fillMaxSize()) {
         TomTomMap(
@@ -115,7 +119,7 @@ fun TomTomHomeScreen(
             VehicleMarkers(
                 vehicles = vehicles,
                 selectedVehicleId = selectedVehicleId,
-                onSelect = viewModel::onVehicleSelected,
+                onSelect = onSelect,
             )
         }
 
@@ -202,12 +206,30 @@ private fun VehicleMarkers(
     selectedVehicleId: String?,
     onSelect: (VehiclePosition) -> Unit,
 ) {
-    vehicles.forEach { vehicle ->
-        key(vehicle.vehicleId) {
+    // Pin images are hoisted so 200 markers don't rebuild them every 5s poll.
+    val tramPin = remember { ImageFactory.fromResource(vehicleIconRes(VehicleType.TRAM)) }
+    val busPin = remember { ImageFactory.fromResource(vehicleIconRes(VehicleType.BUS)) }
+    // Fresh-vehicle lookup for taps: the map itself is cheap to rebuild per poll, while the
+    // per-marker click lambdas below stay stable (keyed by callback + vehicle id) and always
+    // resolve the latest vehicle instead of a stale captured one.
+    val latestById = rememberUpdatedState(vehicles.associateBy { it.vehicleId })
+    val selectById =
+        remember(onSelect) {
+            { id: String ->
+                latestById.value[id]?.let(onSelect)
+                Unit
+            }
+        }
+    // Keys are computed once per poll (a cheap projection); each keyed child then skips
+    // unless its rendered fields changed, so unchanged markers avoid native updates.
+    vehicleMarkerKeys(vehicles).forEach { markerKey ->
+        key(markerKey.vehicleId) {
             VehicleMarker(
-                vehicle = vehicle,
-                isSelected = vehicle.vehicleId == selectedVehicleId,
-                onSelect = { onSelect(vehicle) },
+                markerKey = markerKey,
+                isSelected = markerKey.vehicleId == selectedVehicleId,
+                tramPin = tramPin,
+                busPin = busPin,
+                onSelectById = selectById,
             )
         }
     }
@@ -215,9 +237,11 @@ private fun VehicleMarkers(
 
 @Composable
 private fun VehicleMarker(
-    vehicle: VehiclePosition,
+    markerKey: VehicleMarkerKey,
     isSelected: Boolean,
-    onSelect: () -> Unit,
+    tramPin: Image,
+    busPin: Image,
+    onSelectById: (String) -> Unit,
 ) {
     val markerState = rememberMarkerState()
     LaunchedEffect(isSelected) {
@@ -225,30 +249,54 @@ private fun VehicleMarker(
             markerState.deselect()
         }
     }
-    Marker(
-        data =
+    // Marker params are memoized on the rendered projection only: volatile-only polls
+    // (timestamp/bearing/speed/...) reuse identical data/properties/click instances, so the
+    // marker node can skip instead of updating all 200 markers natively every 5s.
+    // The builder reads nothing but the key, so the memoized values cannot go stale.
+    val markerData =
+        remember(markerKey) {
             MarkerData(
-                geoPoint = GeoPoint(vehicle.latitude, vehicle.longitude),
-            ),
-        properties =
+                geoPoint = GeoPoint(markerKey.latitude, markerKey.longitude),
+            )
+        }
+    val markerProperties =
+        remember(markerKey, tramPin, busPin) {
             MarkerProperties(
-                pinImage = ImageFactory.fromResource(vehicleIconRes(vehicle.vehicleType)),
+                pinImage =
+                    when (markerKey.vehicleType) {
+                        VehicleType.TRAM -> tramPin
+                        VehicleType.BUS -> busPin
+                    },
             ) {
                 label =
                     Label(
-                        text = vehicleLabel(vehicle),
+                        text = markerKey.label,
                         textColor = Color.WHITE,
                         textSize = 12.0,
                         outlineColor = Color.BLACK,
                         outlineWidth = 2.0,
                     )
-                balloonText = vehicleTitle(vehicle)
-            },
+                balloonText = markerKey.title
+            }
+        }
+    val onClick =
+        remember(onSelectById, markerKey.vehicleId) {
+            { onSelectById(markerKey.vehicleId) }
+        }
+    // Memoized too: it only reads the stable marker state and the stable click above,
+    // so Marker keeps identical params (and skips) unless data/properties change.
+    val markerClick =
+        remember(markerState, onClick) {
+            {
+                if (markerState.isSelected()) markerState.deselect() else markerState.select()
+                onClick()
+            }
+        }
+    Marker(
+        data = markerData,
+        properties = markerProperties,
         state = markerState,
-        onClick = {
-            if (markerState.isSelected()) markerState.deselect() else markerState.select()
-            onSelect()
-        },
+        onClick = markerClick,
     )
 }
 

@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.tomtom.sdk.map.display.compose) {
         exclude(group = "com.google.protobuf", module = "protobuf-javalite")
     }
+    testImplementation(libs.junit)
     androidTestImplementation(project(":core-testing"))
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
