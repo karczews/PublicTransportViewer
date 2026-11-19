@@ -11,6 +11,7 @@ import com.github.karczews.publictransportviewer.FixedVehicleRepository
 import com.github.karczews.publictransportviewer.ui.home.HomeViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assume
 import org.junit.Rule
 import org.junit.Test
 
@@ -20,6 +21,10 @@ class TomTomHomeScreenTest {
 
     @Test
     fun homeScreen_showsRecenterButton() {
+        Assume.assumeFalse(
+            "Skipping TomTom test: no API key (set tomtomApiKey).",
+            BuildConfig.TOMTOM_API_KEY.isBlank(),
+        )
         val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
         runBlocking(Dispatchers.Main) { TomTomMapSdk().initialize(context) }
         val viewModel = HomeViewModel(FixedVehicleRepository(), FixedRouteDisplayRepository())
